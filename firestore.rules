@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function journeyMember(journeyId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/journeys/$(journeyId)/members/$(request.auth.uid));
+    }
+
+    function journeyRole(journeyId) {
+      return get(/databases/$(database)/documents/journeys/$(journeyId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function canReadJourney(journeyId) {
+      return journeyMember(journeyId);
+    }
+
+    function canEditJourney(journeyId) {
+      return journeyMember(journeyId)
+        && journeyRole(journeyId) in ['owner', 'editor'];
+    }
+
+    function isJourneyOwner(journeyId) {
+      return journeyMember(journeyId)
+        && journeyRole(journeyId) == 'owner';
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if signedIn() && request.auth.uid == userId;
+
+      match /journeys/{journeyId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == 'owner'
+          && getAfter(/databases/$(database)/documents/journeys/$(journeyId)/members/$(userId)).data.role == 'owner';
+        allow update, delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /journeys/{journeyId} {
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.place is string
+        && request.resource.data.startDate is string
+        && request.resource.data.endDate is string;
+
+      allow read: if canReadJourney(journeyId);
+      allow update: if canEditJourney(journeyId)
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isJourneyOwner(journeyId);
+
+      match /members/{userId} {
+        allow read: if canReadJourney(journeyId);
+
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.uid == userId
+          && request.resource.data.email is string
+          && request.resource.data.role == 'owner'
+          && getAfter(/databases/$(database)/documents/journeys/$(journeyId)).data.createdBy == request.auth.uid;
+
+        allow update: if isJourneyOwner(journeyId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+
+        allow delete: if isJourneyOwner(journeyId);
+      }
+
+      match /entries/{entryId} {
+        allow read: if canReadJourney(journeyId);
+
+        allow create: if canEditJourney(journeyId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.title is string
+          && request.resource.data.date is string
+          && request.resource.data.story is string
+          && request.resource.data.people is list
+          && request.resource.data.tags is list
+          && request.resource.data.photos is list
+          && request.resource.data.costs is list;
+
+        allow update: if canEditJourney(journeyId)
+          && request.resource.data.createdBy == resource.data.createdBy;
+
+        allow delete: if canEditJourney(journeyId);
+      }
+    }
+
+    match /invitations/{invitationId} {
+      allow read, create, update, delete: if false;
+    }
+  }
+}

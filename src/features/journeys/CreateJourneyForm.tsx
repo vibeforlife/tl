@@ -39,31 +39,79 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
     <form className="journey-form" onSubmit={handleSubmit} noValidate>
       <div className="journey-form__heading">
         <p className="eyebrow">NEW JOURNEY</p>
-        <h2>Create a journey.</h2>
+        <h2 id="new-journey-title">Create a journey.</h2>
+        <p className="journey-form__copy">
+          Start a new adventure and document the places, moments, and memories along the way.
+        </p>
       </div>
 
-      <label htmlFor="journey-name">Journey name</label>
-      <input id="journey-name" value={form.name} onChange={(e) => update('name', e.target.value)} required disabled={isSubmitting} placeholder="Japan 2026" />
-
-      <label htmlFor="journey-place">Place</label>
-      <input id="journey-place" value={form.place} onChange={(e) => update('place', e.target.value)} required disabled={isSubmitting} placeholder="Japan" />
-
-      <div className="date-grid">
-        <div>
-          <label htmlFor="journey-start">Start date</label>
-          <input id="journey-start" type="date" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} required disabled={isSubmitting} />
+      <div className="journey-form__fields">
+        <div className="journey-form__field">
+          <label htmlFor="journey-name">Journey name</label>
+          <input
+            id="journey-name"
+            value={form.name}
+            onChange={(e) => update('name', e.target.value)}
+            required
+            disabled={isSubmitting}
+            placeholder="e.g. Italy 2026"
+          />
         </div>
-        <div>
-          <label htmlFor="journey-end">End date</label>
-          <input id="journey-end" type="date" value={form.endDate} onChange={(e) => update('endDate', e.target.value)} min={form.startDate || undefined} required disabled={isSubmitting} />
+
+        <div className="journey-form__field">
+          <label htmlFor="journey-place">Place</label>
+          <input
+            id="journey-place"
+            value={form.place}
+            onChange={(e) => update('place', e.target.value)}
+            required
+            disabled={isSubmitting}
+            placeholder="e.g. Italy"
+          />
         </div>
+
+        <div className="date-grid">
+          <div>
+            <label htmlFor="journey-start">Start date</label>
+            <input
+              id="journey-start"
+              type="date"
+              value={form.startDate}
+              onChange={(e) => update('startDate', e.target.value)}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="journey-end">End date</label>
+            <input
+              id="journey-end"
+              type="date"
+              value={form.endDate}
+              onChange={(e) => update('endDate', e.target.value)}
+              min={form.startDate || undefined}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
+
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <button
+          className="primary-button journey-form__submit"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Creating journey…' : 'Create Journey'}
+        </button>
       </div>
-
-      {error && <p className="auth-error" role="alert">{error}</p>}
-
-      <button className="primary-button" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creating journey…' : 'Create Journey'}
-      </button>
     </form>
+
   );
 }

@@ -99,7 +99,25 @@ service cloud.firestore {
     }
 
     match /invitations/{invitationId} {
-      allow read, create, update, delete: if false;
+      // V1 sharing links are created only by the Journey owner.
+      // Redemption/read access will be added separately when we build
+      // the recipient flow.
+      allow read: if false;
+
+      allow create: if signedIn()
+        && request.resource.data.journeyId is string
+        && request.resource.data.inviterId == request.auth.uid
+        && request.resource.data.role in ['editor', 'viewer']
+        && request.resource.data.createdAt is timestamp
+        && isJourneyOwner(request.resource.data.journeyId)
+        && request.resource.data.keys().hasOnly([
+          'journeyId',
+          'inviterId',
+          'role',
+          'createdAt'
+        ]);
+
+      allow update, delete: if false;
     }
   }
 }

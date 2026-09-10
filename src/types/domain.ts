@@ -83,7 +83,6 @@ export interface Invitation {
   id: string;
   journeyId: string;
   inviterId: string;
-  email: string;
   role: InvitationRole;
   createdAt: Timestamp;
   acceptedAt?: Timestamp;

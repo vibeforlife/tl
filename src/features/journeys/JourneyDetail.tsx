@@ -5,7 +5,12 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/firestore';
-import type { Entry, Journey, JourneyRole } from '../../types/domain';
+import type {
+  Entry,
+  InvitationRole,
+  Journey,
+  JourneyRole,
+} from '../../types/domain';
 import { deleteEntry, listJourneyEntries } from '../../services/firebase/entries';
 import {
   deleteJourney,
@@ -13,6 +18,7 @@ import {
   updateJourney,
   type CreateJourneyInput,
 } from '../../services/firebase/journeys';
+import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
 
 const formatDate = (value: string) =>
@@ -101,6 +107,11 @@ export function JourneyDetail({
   const [isDeletingJourney, setIsDeletingJourney] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [managementError, setManagementError] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareLinkRole, setShareLinkRole] = useState<InvitationRole | null>(null);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  const [isCreatingShareLink, setIsCreatingShareLink] =
+    useState<InvitationRole | null>(null);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [deleteEntryConfirmed, setDeleteEntryConfirmed] = useState(false);
@@ -288,6 +299,49 @@ export function JourneyDetail({
 
   const canEditJourney = journeyRole === 'owner' || journeyRole === 'editor';
   const canDeleteJourney = journeyRole === 'owner';
+  const canShareJourney = journeyRole === 'owner';
+
+  const handleCreateShareLink = async (role: InvitationRole) => {
+    if (!canShareJourney) return;
+
+    setIsCreatingShareLink(role);
+    setShareLink(null);
+    setShareLinkRole(null);
+    setShareLinkCopied(false);
+    setManagementError(null);
+
+    try {
+      const link = await createJourneyShareLink(journeyId, role);
+      setShareLink(link);
+      setShareLinkRole(role);
+
+      try {
+        await navigator.clipboard.writeText(link);
+        setShareLinkCopied(true);
+      } catch {
+        setShareLinkCopied(false);
+      }
+    } catch (shareError) {
+      setManagementError(
+        shareError instanceof Error
+          ? shareError.message
+          : 'We could not create the sharing link.',
+      );
+    } finally {
+      setIsCreatingShareLink(null);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareLink) return;
+
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareLinkCopied(true);
+    } catch {
+      setShareLinkCopied(false);
+    }
+  };
 
   const openEditJourney = () => {
     if (!journey) return;
@@ -458,6 +512,34 @@ export function JourneyDetail({
               </button>
             )}
 
+            {canShareJourney && (
+              <>
+                <button
+                  className="journey-management__button journey-management__button--share-edit"
+                  type="button"
+                  disabled={isCreatingShareLink !== null}
+                  onClick={() => {
+                    void handleCreateShareLink('editor');
+                  }}
+                >
+                  {isCreatingShareLink === 'editor' ? 'Creating…' : 'Share edit'}
+                </button>
+
+                <button
+                  className="journey-management__button journey-management__button--share-read"
+                  type="button"
+                  disabled={isCreatingShareLink !== null}
+                  onClick={() => {
+                    void handleCreateShareLink('viewer');
+                  }}
+                >
+                  {isCreatingShareLink === 'viewer'
+                    ? 'Creating…'
+                    : 'Share read only'}
+                </button>
+              </>
+            )}
+
             {canDeleteJourney && (
               <button
                 className="journey-management__button journey-management__button--danger"
@@ -470,6 +552,37 @@ export function JourneyDetail({
               >
                 Delete journey
               </button>
+            )}
+
+            {shareLink && (
+              <div className="journey-share-result">
+                <div className="journey-share-result__row">
+                  <input
+                    type="text"
+                    value={shareLink}
+                    readOnly
+                    aria-label="Journey sharing link"
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                  <button
+                    className="journey-share-result__copy"
+                    type="button"
+                    onClick={() => {
+                      void handleCopyShareLink();
+                    }}
+                  >
+                    {shareLinkCopied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+
+                <p className="journey-share-result__status" aria-live="polite">
+                  {shareLinkCopied
+                    ? 'Link copied. Send it by WhatsApp, email, text, or anywhere else.'
+                    : shareLinkRole === 'editor'
+                      ? 'Edit access link ready.'
+                      : 'Read-only access link ready.'}
+                </p>
+              </div>
             )}
           </div>
         </div>

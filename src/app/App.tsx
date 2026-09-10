@@ -26,8 +26,15 @@ function AuthForm({ mode, onModeChange, onSubmit, isSubmitting, error }: {
 
   return (
     <section className="auth-card" aria-labelledby="auth-title">
-      <div className="auth-card__brand" aria-hidden="true"><div className="brand-glyph">TL</div></div>
-      <p className="eyebrow">TRAVEL LORE</p>
+      <div className="auth-card__brand">
+        <img
+          className="auth-card__logo"
+          src={`${import.meta.env.BASE_URL}travel-lore-icon-512.png`}
+          alt="Travel Lore"
+        />
+        <div className="auth-card__wordmark">Travel Lore</div>
+      </div>
+      <p className="eyebrow">EVERY PLACE HAS A STORY</p>
       <h1 id="auth-title">{isSignIn ? 'Welcome back.' : 'Begin your story.'}</h1>
       <p className="auth-intro">{isSignIn ? 'Your journeys and memories are waiting.' : 'Create a place for the journeys worth remembering.'}</p>
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
@@ -46,21 +53,65 @@ function AuthForm({ mode, onModeChange, onSubmit, isSubmitting, error }: {
   );
 }
 
+function BrandSplash() {
+  return (
+    <main className="brand-splash" aria-label="Travel Lore">
+      <img
+        className="brand-splash__image"
+        src={`${import.meta.env.BASE_URL}travel-lore-splash.jpg`}
+        alt="Travel Lore — Every place has a story"
+      />
+    </main>
+  );
+}
+
 function JourneyShell({ user }: { user: User }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [homeRequest, setHomeRequest] = useState(0);
+
   const handleSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
-    try { await signOut(); } finally { setIsSigningOut(false); }
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  const handleHome = () => {
+    setHomeRequest((current) => current + 1);
   };
 
   return (
     <div className="journey-shell">
       <header className="topbar">
-        <div className="topbar__brand"><div className="brand-glyph brand-glyph--small" aria-hidden="true">TL</div><span>Travel Lore</span></div>
-        <button className="text-button text-button--quiet" type="button" onClick={handleSignOut} disabled={isSigningOut}>{isSigningOut ? 'Signing out…' : 'Sign out'}</button>
+        <button
+          className="topbar__brand"
+          type="button"
+          onClick={handleHome}
+          aria-label="Go to Travel Lore home"
+        >
+          <img
+            className="topbar__logo"
+            src={`${import.meta.env.BASE_URL}travel-lore-icon-192.png`}
+            alt=""
+            aria-hidden="true"
+          />
+          <span className="topbar__wordmark">Travel Lore</span>
+        </button>
+
+        <button
+          className="text-button text-button--quiet"
+          type="button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+        >
+          {isSigningOut ? 'Signing out…' : 'Sign out'}
+        </button>
       </header>
-      <JourneyHome user={user} />
+
+      <JourneyHome user={user} homeRequest={homeRequest} />
     </div>
   );
 }
@@ -71,6 +122,12 @@ export function App() {
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBrandSplashVisible, setIsBrandSplashVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsBrandSplashVisible(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => subscribeToAuthState((nextUser) => { setUser(nextUser); setIsAuthLoading(false); }), []);
 
@@ -81,7 +138,7 @@ export function App() {
     finally { setIsSubmitting(false); }
   };
 
-  if (isAuthLoading) return <main className="app-shell app-shell--loading" aria-live="polite"><div className="loading-mark" aria-hidden="true">TL</div><p>Opening Travel Lore…</p></main>;
+  if (isBrandSplashVisible || isAuthLoading) return <BrandSplash />;
   if (user) return <JourneyShell user={user} />;
   return <main className="app-shell"><AuthForm mode={mode} onModeChange={(nextMode) => { setMode(nextMode); setError(null); }} onSubmit={handleAuthSubmit} isSubmitting={isSubmitting} error={error} /></main>;
 }

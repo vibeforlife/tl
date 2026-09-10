@@ -2739,3 +2739,152 @@ select:focus {
 }
 
 
+
+/* Travel Lore brand identity + PWA splash */
+.brand-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #061a20;
+}
+
+.brand-splash__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.auth-card__brand {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.auth-card__logo {
+  width: 92px;
+  height: 92px;
+  display: block;
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.28), 0 0 35px rgba(64,199,189,.08);
+}
+
+.auth-card__wordmark,
+.topbar__wordmark {
+  font-family: "Brush Script MT", "Segoe Print", "Bradley Hand", "URW Chancery L", cursive;
+  font-weight: 600;
+  letter-spacing: -.035em;
+}
+
+.auth-card__wordmark {
+  color: #f3f0e8;
+  font-size: clamp(2rem, 7vw, 2.65rem);
+  line-height: .95;
+}
+
+.topbar__brand {
+  gap: 11px;
+}
+
+.topbar__logo {
+  width: 40px;
+  height: 40px;
+  display: block;
+  border-radius: 12px;
+}
+
+.topbar__wordmark {
+  color: #f3f0e8;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .brand-splash__image {
+    object-position: center center;
+  }
+
+  .auth-card__logo {
+    width: 82px;
+    height: 82px;
+  }
+
+  .topbar__wordmark {
+    font-size: 1.35rem;
+  }
+}
+
+
+/* Travel Lore — branding polish v2 */
+
+/* Desktop: preserve the complete portrait splash composition. */
+.brand-splash__image {
+  width: auto;
+  height: auto;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+/* Keep Chrome autofill from turning the email field white. */
+.auth-form input:-webkit-autofill,
+.auth-form input:-webkit-autofill:hover,
+.auth-form input:-webkit-autofill:focus,
+.auth-form input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f3f0e8;
+  -webkit-box-shadow: 0 0 0 1000px rgba(2,10,17,.62) inset;
+  box-shadow: 0 0 0 1000px rgba(2,10,17,.62) inset;
+  caret-color: #f3f0e8;
+}
+
+/* The Travel Lore brand is a navigation control, not a filled button. */
+.topbar__brand {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.topbar__brand:focus-visible {
+  outline: 2px solid rgba(64,199,189,.55);
+  outline-offset: 5px;
+  border-radius: 6px;
+}
+
+/* Sign out remains an understated transparent header action. */
+.topbar .text-button--quiet {
+  appearance: none;
+  border: 0;
+  padding: 6px 0;
+  margin: 0;
+  color: rgba(243,240,232,.58);
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: .76rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  cursor: pointer;
+}
+
+.topbar .text-button--quiet:hover:not(:disabled) {
+  color: #40c7bd;
+  background: transparent;
+  text-decoration: none;
+}
+
+.topbar .text-button--quiet:focus-visible {
+  outline: 2px solid rgba(64,199,189,.55);
+  outline-offset: 4px;
+}

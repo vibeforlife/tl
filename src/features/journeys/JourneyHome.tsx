@@ -12,7 +12,13 @@ const formatDate = (value: string) =>
     year: 'numeric',
   }).format(new Date(`${value}T00:00:00`));
 
-export function JourneyHome({ user }: { user: User }) {
+export function JourneyHome({
+  user,
+  homeRequest = 0,
+}: {
+  user: User;
+  homeRequest?: number;
+}) {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +40,10 @@ export function JourneyHome({ user }: { user: User }) {
   useEffect(() => {
     void loadJourneys();
   }, [loadJourneys]);
+
+  useEffect(() => {
+    setSelectedJourneyId(null);
+  }, [homeRequest]);
 
   if (selectedJourneyId) {
     return (

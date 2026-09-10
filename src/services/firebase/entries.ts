@@ -1,10 +1,12 @@
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   type DocumentData,
   type Timestamp,
 } from 'firebase/firestore';
@@ -186,5 +188,72 @@ export const listJourneyEntries = async (journeyId: string): Promise<Entry[]> =>
 
   return snapshot.docs.map((entryDoc) =>
     mapEntry(entryDoc.id, journeyId, entryDoc.data()),
+  );
+};
+
+
+export type UpdateEntryInput = CreateEntryInput;
+
+const buildEntryUpdate = (input: UpdateEntryInput) => {
+  const location = input.location
+    ? {
+        name: input.location.name.trim(),
+        latitude: input.location.latitude,
+        longitude: input.location.longitude,
+        ...(input.location.address?.trim()
+          ? { address: input.location.address.trim() }
+          : {}),
+        ...(input.location.mapboxPlaceId?.trim()
+          ? { mapboxPlaceId: input.location.mapboxPlaceId.trim() }
+          : {}),
+      }
+    : undefined;
+
+  const photos = input.photos
+    .filter((photo) => photo.url.trim())
+    .map((photo) => ({
+      url: photo.url.trim(),
+      ...(photo.caption?.trim()
+        ? { caption: photo.caption.trim() }
+        : {}),
+    }));
+
+  const costs = input.costs.map((cost) => ({
+    category: cost.category,
+    amount: cost.amount,
+    currency: cost.currency.toUpperCase(),
+  }));
+
+  return {
+    title: input.title.trim(),
+    date: input.date,
+    time: input.time || '',
+    story: input.story.trim(),
+    highlight: input.highlight.trim(),
+    rating: input.rating ?? null,
+    people: input.people.map((person) => person.trim()).filter(Boolean),
+    memoryType: input.memoryType || null,
+    tags: input.tags.map((tag) => tag.trim()).filter(Boolean),
+    location: location ?? null,
+    photos,
+    costs,
+    updatedAt: serverTimestamp(),
+  };
+};
+
+export const updateEntry = async (
+  journeyId: string,
+  entryId: string,
+  input: UpdateEntryInput,
+): Promise<void> => {
+  const validationError = validateEntryInput(input);
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  await updateDoc(
+    doc(db, 'journeys', journeyId, 'entries', entryId),
+    buildEntryUpdate(input),
   );
 };

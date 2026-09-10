@@ -5,8 +5,14 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/firestore';
-import type { Entry, Journey } from '../../types/domain';
+import type { Entry, Journey, JourneyRole } from '../../types/domain';
 import { listJourneyEntries } from '../../services/firebase/entries';
+import {
+  deleteJourney,
+  getJourneyMember,
+  updateJourney,
+  type CreateJourneyInput,
+} from '../../services/firebase/journeys';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
 
 const formatDate = (value: string) =>
@@ -84,9 +90,18 @@ export function JourneyDetail({
   onBack: () => void;
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [journeyRole, setJourneyRole] = useState<JourneyRole | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editInput, setEditInput] = useState<CreateJourneyInput | null>(null);
+  const [isSavingJourney, setIsSavingJourney] = useState(false);
+  const [isDeletingJourney, setIsDeletingJourney] = useState(false);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [managementError, setManagementError] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -105,13 +120,18 @@ export function JourneyDetail({
     setError(null);
 
     try {
-      const [journeySnapshot, nextEntries] = await Promise.all([
+      const [journeySnapshot, nextEntries, member] = await Promise.all([
         getDoc(doc(db, 'journeys', journeyId)),
         listJourneyEntries(journeyId),
+        getJourneyMember(journeyId, user.uid),
       ]);
 
       if (!journeySnapshot.exists()) {
         throw new Error('Journey not found.');
+      }
+
+      if (!member) {
+        throw new Error('You no longer have access to this journey.');
       }
 
       const data = journeySnapshot.data();
@@ -127,6 +147,7 @@ export function JourneyDetail({
         updatedAt: data.updatedAt,
       });
 
+      setJourneyRole(member.role);
       setEntries(nextEntries);
     } catch (loadError) {
       setError(
@@ -137,7 +158,7 @@ export function JourneyDetail({
     } finally {
       setIsLoading(false);
     }
-  }, [journeyId]);
+  }, [journeyId, user.uid]);
 
   useEffect(() => {
     void load();
@@ -262,6 +283,87 @@ export function JourneyDetail({
     setTagFilter('');
   };
 
+  const canEditJourney = journeyRole === 'owner' || journeyRole === 'editor';
+  const canDeleteJourney = journeyRole === 'owner';
+
+  const openEditJourney = () => {
+    if (!journey) return;
+
+    setIsDeleteOpen(false);
+    setManagementError(null);
+    setEditInput({
+      name: journey.name,
+      place: journey.place,
+      startDate: journey.startDate,
+      endDate: journey.endDate,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleSaveJourney = async () => {
+    if (!journey || !editInput) return;
+
+    setIsSavingJourney(true);
+    setManagementError(null);
+
+    try {
+      await updateJourney(journey.id, editInput);
+      setJourney((current) =>
+        current
+          ? {
+              ...current,
+              name: editInput.name.trim(),
+              place: editInput.place.trim(),
+              startDate: editInput.startDate,
+              endDate: editInput.endDate,
+            }
+          : current,
+      );
+      setIsEditOpen(false);
+    } catch (saveError) {
+      setManagementError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'We could not save this journey.',
+      );
+    } finally {
+      setIsSavingJourney(false);
+    }
+  };
+
+  const openEditEntry = (entry: Entry) => {
+    if (!canEditJourney) return;
+    setEditingEntry(entry);
+  };
+
+  const closeEditEntry = () => {
+    setEditingEntry(null);
+  };
+
+  const handleEntryUpdated = async () => {
+    await load();
+    setEditingEntry(null);
+  };
+
+  const handleDeleteJourney = async () => {
+    if (!journey || !canDeleteJourney || !deleteConfirmed) return;
+
+    setIsDeletingJourney(true);
+    setManagementError(null);
+
+    try {
+      await deleteJourney(journey.id);
+      onBack();
+    } catch (deleteError) {
+      setManagementError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'We could not delete this journey.',
+      );
+      setIsDeletingJourney(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <main className="journey-home">
@@ -292,12 +394,44 @@ export function JourneyDetail({
       </button>
 
       <section className="journey-hero">
-        <div>
+        <div className="journey-hero__main">
           <p className="journey-card__place">{journey.place}</p>
           <h1>{journey.name}</h1>
           <p className="journey-detail__dates">
             {formatDate(journey.startDate)} — {formatDate(journey.endDate)}
           </p>
+
+          <div className="journey-management">
+            {journeyRole && (
+              <span className="journey-role" aria-label={`Your role: ${journeyRole}`}>
+                {journeyRole}
+              </span>
+            )}
+
+            {canEditJourney && (
+              <button
+                className="journey-management__button"
+                type="button"
+                onClick={openEditJourney}
+              >
+                Edit journey
+              </button>
+            )}
+
+            {canDeleteJourney && (
+              <button
+                className="journey-management__button journey-management__button--danger"
+                type="button"
+                onClick={() => {
+                  setIsEditOpen(false);
+                  setManagementError(null);
+                  setIsDeleteOpen(true);
+                }}
+              >
+                Delete journey
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="journey-detail__summary">
@@ -305,6 +439,12 @@ export function JourneyDetail({
           <small>{entries.length === 1 ? 'memory' : 'memories'}</small>
         </div>
       </section>
+
+      {managementError && (
+        <p className="journey-management__error" role="alert">
+          {managementError}
+        </p>
+      )}
 
       <section className="entry-layout">
         <div>
@@ -599,7 +739,23 @@ export function JourneyDetail({
                               )}
                             </div>
 
-                            <h3>{entry.title}</h3>
+                            <div className="entry-river-title-row">
+                              <h3>{entry.title}</h3>
+                              {canEditJourney && (
+                                <button
+                                  className="entry-action-button"
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    openEditEntry(entry);
+                                  }}
+                                  aria-label={`Edit ${entry.title}`}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </div>
 
                             {entry.highlight && (
                               <p className="entry-river-highlight">
@@ -677,7 +833,19 @@ export function JourneyDetail({
                             </div>
                           </div>
 
-                          <h3>{entry.title}</h3>
+                          <div className="entry-card__title-row">
+                            <h3>{entry.title}</h3>
+                            {canEditJourney && (
+                              <button
+                                className="entry-action-button"
+                                type="button"
+                                onClick={() => openEditEntry(entry)}
+                                aria-label={`Edit ${entry.title}`}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
 
                           {entry.location && (
                             <div className="entry-card__location">
@@ -787,12 +955,276 @@ export function JourneyDetail({
           )}
         </div>
 
-        <CreateEntryForm
-          user={user}
-          journeyId={journeyId}
-          onCreated={load}
-        />
+        {canEditJourney && (
+          <CreateEntryForm
+            user={user}
+            journeyId={journeyId}
+            onCreated={load}
+          />
+        )}
       </section>
+      {editingEntry && (
+        <div
+          className="journey-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-memory-title"
+        >
+          <div
+            className="journey-modal__backdrop"
+            onClick={closeEditEntry}
+            aria-hidden="true"
+          />
+
+          <div className="journey-modal__panel">
+            <div className="journey-modal__header">
+              <div>
+                <p className="eyebrow">MEMORY</p>
+                <h2 id="edit-memory-title">Edit memory.</h2>
+              </div>
+
+              <button
+                className="journey-modal__close"
+                type="button"
+                onClick={closeEditEntry}
+                aria-label="Close edit memory"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="memory-edit-modal__body">
+              <CreateEntryForm
+                user={user}
+                journeyId={journeyId}
+                entry={editingEntry}
+                idPrefix="edit-memory"
+                onCreated={() => undefined}
+                onUpdated={handleEntryUpdated}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditOpen && editInput && (
+        <div
+          className="journey-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-journey-title"
+        >
+          <div
+            className="journey-modal__backdrop"
+            onClick={() => !isSavingJourney && setIsEditOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="journey-modal__panel">
+            <div className="journey-modal__header">
+              <div>
+                <p className="eyebrow">JOURNEY</p>
+                <h2 id="edit-journey-title">Shape the story.</h2>
+              </div>
+
+              <button
+                className="journey-modal__close"
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                disabled={isSavingJourney}
+                aria-label="Close edit journey"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="journey-modal__fields">
+              <label>
+                <span>Journey name</span>
+                <input
+                  value={editInput.name}
+                  onChange={(event) =>
+                    setEditInput((current) =>
+                      current
+                        ? { ...current, name: event.target.value }
+                        : current,
+                    )
+                  }
+                  autoFocus
+                />
+              </label>
+
+              <label>
+                <span>Place</span>
+                <input
+                  value={editInput.place}
+                  onChange={(event) =>
+                    setEditInput((current) =>
+                      current
+                        ? { ...current, place: event.target.value }
+                        : current,
+                    )
+                  }
+                />
+              </label>
+
+              <div className="journey-modal__date-grid">
+                <label>
+                  <span>Start date</span>
+                  <input
+                    type="date"
+                    value={editInput.startDate}
+                    onChange={(event) =>
+                      setEditInput((current) =>
+                        current
+                          ? { ...current, startDate: event.target.value }
+                          : current,
+                      )
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>End date</span>
+                  <input
+                    type="date"
+                    value={editInput.endDate}
+                    onChange={(event) =>
+                      setEditInput((current) =>
+                        current
+                          ? { ...current, endDate: event.target.value }
+                          : current,
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            {managementError && (
+              <p className="journey-modal__error" role="alert">
+                {managementError}
+              </p>
+            )}
+
+            <div className="journey-modal__actions">
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                disabled={isSavingJourney}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => void handleSaveJourney()}
+                disabled={isSavingJourney}
+              >
+                {isSavingJourney ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteOpen && canDeleteJourney && (
+        <div
+          className="journey-modal journey-modal--danger"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-journey-title"
+        >
+          <div
+            className="journey-modal__backdrop"
+            onClick={() => {
+              if (isDeletingJourney) return;
+              setDeleteConfirmed(false);
+              setManagementError(null);
+              setIsDeleteOpen(false);
+            }}
+            aria-hidden="true"
+          />
+
+          <div className="journey-modal__panel">
+            <div className="journey-modal__header">
+              <div>
+                <p className="eyebrow">PERMANENT</p>
+                <h2 id="delete-journey-title">Leave no loose ends.</h2>
+              </div>
+
+              <button
+                className="journey-modal__close"
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmed(false);
+                  setManagementError(null);
+                  setIsDeleteOpen(false);
+                }}
+                disabled={isDeletingJourney}
+                aria-label="Close delete journey"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="journey-modal__warning">
+              This will permanently delete <strong>{journey.name}</strong>,
+              including its memories and journey membership. This cannot be
+              undone.
+            </p>
+
+            <label className="journey-delete-confirmation">
+              <input
+                type="checkbox"
+                checked={deleteConfirmed}
+                onChange={(event) => setDeleteConfirmed(event.target.checked)}
+                disabled={isDeletingJourney}
+              />
+              <span className="journey-delete-confirmation__text">
+                <strong>I understand this is permanent.</strong>
+                <span>
+                  I confirm that this will permanently delete this journey and
+                  all associated memories, details, pictures, and other content.
+                  This action cannot be undone.
+                </span>
+              </span>
+            </label>
+
+            {managementError && (
+              <p className="journey-modal__error" role="alert">
+                {managementError}
+              </p>
+            )}
+
+            <div className="journey-modal__actions">
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmed(false);
+                  setManagementError(null);
+                  setIsDeleteOpen(false);
+                }}
+                disabled={isDeletingJourney}
+              >
+                Keep journey
+              </button>
+
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => void handleDeleteJourney()}
+                disabled={isDeletingJourney || !deleteConfirmed}
+              >
+                {isDeletingJourney ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

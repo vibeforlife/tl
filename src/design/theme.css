@@ -2888,3 +2888,476 @@ select:focus {
   outline: 2px solid rgba(64,199,189,.55);
   outline-offset: 4px;
 }
+
+
+/* Phase 1 — Journey management */
+
+.journey-hero__main {
+  min-width: 0;
+}
+
+.journey-management {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.journey-role,
+.journey-management__button {
+  min-height: 32px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.journey-role {
+  border: 1px solid rgba(216,182,92,.24);
+  color: rgba(216,182,92,.82);
+  background: rgba(216,182,92,.05);
+  font-weight: 700;
+}
+
+.journey-management__button {
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(243,240,232,.68);
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+
+.journey-management__button:hover {
+  border-color: rgba(64,199,189,.38);
+  color: #40c7bd;
+  background: rgba(64,199,189,.05);
+}
+
+.journey-management__button--danger:hover {
+  border-color: rgba(220,110,100,.4);
+  color: #e3aaa3;
+  background: rgba(220,110,100,.05);
+}
+
+.journey-management__button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.journey-management__error {
+  margin: -12px 0 24px;
+  color: #e3aaa3;
+  font-size: .82rem;
+}
+
+.journey-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.journey-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,8,13,.78);
+  backdrop-filter: blur(8px);
+}
+
+.journey-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(560px,100%);
+  max-height: min(720px,calc(100vh - 48px));
+  overflow: auto;
+  padding: 30px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px;
+  background: linear-gradient(145deg,rgba(14,33,47,.98),rgba(5,15,24,.98));
+  box-shadow: 0 30px 100px rgba(0,0,0,.45);
+}
+
+.journey-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.journey-modal__header h2 {
+  margin: 0;
+  font-family: Georgia,"Times New Roman",serif;
+  font-size: clamp(1.7rem,4vw,2.2rem);
+  font-weight: 400;
+}
+
+.journey-modal__close {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%;
+  color: rgba(243,240,232,.65);
+  background: rgba(255,255,255,.025);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+
+.journey-modal__close:hover:not(:disabled) {
+  border-color: rgba(64,199,189,.35);
+  color: #40c7bd;
+  background: rgba(64,199,189,.05);
+}
+
+.journey-modal__close:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.journey-modal__fields {
+  display: grid;
+  gap: 17px;
+  margin-top: 28px;
+}
+
+.journey-modal__fields label,
+.journey-modal__date-grid label {
+  display: grid;
+  gap: 7px;
+}
+
+.journey-modal__fields label > span,
+.journey-modal__date-grid label > span {
+  color: rgba(243,240,232,.5);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.journey-modal__fields input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 11px;
+  outline: none;
+  color: #f3f0e8;
+  background: rgba(2,10,17,.62);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.journey-modal__fields input:focus {
+  border-color: rgba(64,199,189,.75);
+  box-shadow: 0 0 0 3px rgba(64,199,189,.1);
+}
+
+.journey-modal__date-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 14px;
+}
+
+.journey-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.journey-modal__error {
+  margin: 18px 0 0;
+  color: #e3aaa3;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.journey-modal__warning {
+  margin: 26px 0 0;
+  padding: 17px 18px;
+  border-left: 2px solid rgba(220,110,100,.72);
+  border-radius: 0 12px 12px 0;
+  color: rgba(243,240,232,.7);
+  background: rgba(220,110,100,.045);
+  font-size: .9rem;
+  line-height: 1.65;
+}
+
+.danger-button {
+  min-height: 40px;
+  padding: 10px 17px;
+  border: 1px solid rgba(220,110,100,.35);
+  border-radius: 999px;
+  color: #f0cbc6;
+  background: rgba(220,110,100,.09);
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.danger-button:hover:not(:disabled) {
+  border-color: rgba(220,110,100,.55);
+  background: rgba(220,110,100,.14);
+}
+
+.danger-button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .journey-modal {
+    padding: 14px;
+  }
+
+  .journey-modal__panel {
+    padding: 23px;
+    border-radius: 20px;
+  }
+
+  .journey-modal__date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .journey-modal__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .journey-modal__actions button {
+    width: 100%;
+  }
+}
+
+
+/* Permanent Journey deletion acknowledgment */
+.journey-delete-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+}
+
+.journey-delete-confirmation input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  border: 1px solid rgba(243, 240, 232, 0.38);
+  border-radius: 5px;
+  outline: none;
+  background: rgba(2, 10, 17, 0.72);
+  box-shadow: none;
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.journey-delete-confirmation input[type="checkbox"]:hover:not(:disabled) {
+  border-color: rgba(64, 199, 189, 0.75);
+}
+
+.journey-delete-confirmation input[type="checkbox"]:focus-visible {
+  border-color: rgba(64, 199, 189, 0.9);
+  box-shadow: 0 0 0 3px rgba(64, 199, 189, 0.16);
+}
+
+.journey-delete-confirmation input[type="checkbox"]:checked {
+  border-color: rgba(64, 199, 189, 0.9);
+  background: #40c7bd;
+}
+
+.journey-delete-confirmation input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #06151b;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.journey-delete-confirmation input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.journey-delete-confirmation__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.journey-delete-confirmation__text strong {
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 600;
+}
+
+.journey-delete-confirmation:has(input:checked) {
+  border-color: rgba(43, 183, 169, 0.45);
+  background: rgba(43, 183, 169, 0.06);
+}
+
+.journey-modal--danger .danger-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .journey-delete-confirmation {
+    padding: 0.9rem;
+  }
+
+  .journey-delete-confirmation__text {
+    font-size: 0.84rem;
+  }
+}
+
+/* =========================================================
+   MEMORY EDIT STYLING — STAGE 2A
+   Scoped only to the Memory Edit actions and modal.
+   ========================================================= */
+
+.entry-river-title-row,
+.entry-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.entry-action-button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(46, 196, 182, 0.22);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(46, 196, 182, 0.04);
+  color: rgba(46, 196, 182, 0.82);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.entry-action-button:hover {
+  background: rgba(46, 196, 182, 0.11);
+  border-color: rgba(46, 196, 182, 0.48);
+  color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.entry-action-button:focus-visible {
+  outline: 2px solid rgba(46, 196, 182, 0.55);
+  outline-offset: 3px;
+}
+
+.entry-action-button:active {
+  transform: translateY(0);
+}
+
+/* Memory Edit modal */
+
+.journey-modal .memory-edit-modal__body {
+  min-width: 0;
+}
+
+.memory-edit-modal__body {
+  max-height: min(72vh, 820px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-width: thin;
+}
+
+.memory-edit-modal__body form {
+  width: 100%;
+}
+
+.memory-edit-modal__body .entry-form {
+  width: 100%;
+}
+
+.memory-edit-modal__body .form-fields {
+  margin-top: 4px;
+}
+
+.memory-edit-modal__body textarea {
+  min-height: 180px;
+}
+
+.memory-edit-modal__body input:focus,
+.memory-edit-modal__body select:focus,
+.memory-edit-modal__body textarea:focus {
+  border-color: rgba(46, 196, 182, 0.62);
+  box-shadow: 0 0 0 3px rgba(46, 196, 182, 0.08);
+}
+
+.memory-edit-modal__body .modal-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: 24px;
+  padding-top: 18px;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 16, 24, 0),
+    var(--color-surface) 18%
+  );
+}
+
+@media (max-width: 640px) {
+  .entry-river-title-row,
+  .entry-card__title-row {
+    align-items: flex-start;
+  }
+
+  .entry-action-button {
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  .memory-edit-modal__body {
+    max-height: 70vh;
+    padding-right: 2px;
+  }
+
+  .memory-edit-modal__body textarea {
+    min-height: 150px;
+  }
+}

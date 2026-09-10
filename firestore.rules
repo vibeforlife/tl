@@ -38,7 +38,12 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.role == 'owner'
           && getAfter(/databases/$(database)/documents/journeys/$(journeyId)/members/$(userId)).data.role == 'owner';
-        allow update, delete: if signedIn() && request.auth.uid == userId;
+        allow update: if signedIn() && request.auth.uid == userId;
+        allow delete: if signedIn()
+          && (
+            request.auth.uid == userId
+            || get(/databases/$(database)/documents/journeys/$(journeyId)).data.createdBy == request.auth.uid
+          );
       }
     }
 
@@ -53,7 +58,8 @@ service cloud.firestore {
       allow read: if canReadJourney(journeyId);
       allow update: if canEditJourney(journeyId)
         && request.resource.data.createdBy == resource.data.createdBy;
-      allow delete: if isJourneyOwner(journeyId);
+      allow delete: if signedIn()
+        && resource.data.createdBy == request.auth.uid;
 
       match /members/{userId} {
         allow read: if canReadJourney(journeyId);
@@ -68,7 +74,8 @@ service cloud.firestore {
         allow update: if isJourneyOwner(journeyId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
 
-        allow delete: if isJourneyOwner(journeyId);
+        allow delete: if signedIn()
+          && get(/databases/$(database)/documents/journeys/$(journeyId)).data.createdBy == request.auth.uid;
       }
 
       match /entries/{entryId} {

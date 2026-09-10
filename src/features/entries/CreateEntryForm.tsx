@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
 import {
   createEntry,
+  updateEntry,
   validateEntryInput,
   type CreateEntryInput,
 } from '../../services/firebase/entries';
 import type {
+  Entry,
   EntryCost,
   EntryLocation,
   EntryPhoto,
@@ -50,10 +52,16 @@ export function CreateEntryForm({
   user,
   journeyId,
   onCreated,
+  entry,
+  onUpdated,
+  idPrefix = 'entry',
 }: {
   user: User;
   journeyId: string;
   onCreated: () => Promise<void> | void;
+  entry?: Entry;
+  onUpdated?: () => Promise<void> | void;
+  idPrefix?: string;
 }) {
   const [form, setForm] = useState<CreateEntryInput>({
     title: '',
@@ -81,6 +89,48 @@ export function CreateEntryForm({
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditing = Boolean(entry);
+
+  const fieldId = (name: string) => `${idPrefix}-${name}`;
+
+  useEffect(() => {
+    if (!entry) return;
+
+    setForm({
+      title: entry.title,
+      date: entry.date,
+      time: entry.time ?? '',
+      story: entry.story,
+      highlight: entry.highlight ?? '',
+      rating: entry.rating,
+      people: entry.people,
+      memoryType: entry.memoryType ?? '',
+      tags: entry.tags,
+      location: entry.location,
+      photos: entry.photos,
+      costs: entry.costs,
+    });
+
+    setPeopleText(entry.people.join(', '));
+    setTagsText(entry.tags.join(', '));
+
+    setManualLocation({
+      name: entry.location?.name ?? '',
+      address: entry.location?.address ?? '',
+      latitude:
+        entry.location?.latitude !== undefined
+          ? String(entry.location.latitude)
+          : '',
+      longitude:
+        entry.location?.longitude !== undefined
+          ? String(entry.location.longitude)
+          : '',
+    });
+
+    setShowManualLocation(Boolean(entry.location));
+    setError(null);
+  }, [entry]);
 
   const update = <K extends keyof CreateEntryInput>(
     field: K,
@@ -173,39 +223,46 @@ export function CreateEntryForm({
     setError(null);
 
     try {
-      await createEntry(user.uid, journeyId, nextForm);
+      if (entry) {
+        await updateEntry(journeyId, entry.id, nextForm);
+        await onUpdated?.();
+      } else {
+        await createEntry(user.uid, journeyId, nextForm);
 
-      setForm({
-        title: '',
-        date: '',
-        time: '',
-        story: '',
-        highlight: '',
-        rating: undefined,
-        people: [],
-        memoryType: '',
-        tags: [],
-        location: undefined,
-        photos: [],
-        costs: [],
-      });
+        setForm({
+          title: '',
+          date: '',
+          time: '',
+          story: '',
+          highlight: '',
+          rating: undefined,
+          people: [],
+          memoryType: '',
+          tags: [],
+          location: undefined,
+          photos: [],
+          costs: [],
+        });
 
-      setPeopleText('');
-      setTagsText('');
-      setManualLocation({
-        name: '',
-        address: '',
-        latitude: '',
-        longitude: '',
-      });
-      setShowManualLocation(false);
+        setPeopleText('');
+        setTagsText('');
+        setManualLocation({
+          name: '',
+          address: '',
+          latitude: '',
+          longitude: '',
+        });
+        setShowManualLocation(false);
 
-      await onCreated();
+        await onCreated();
+      }
     } catch (entryError) {
       setError(
         entryError instanceof Error
           ? entryError.message
-          : 'We could not save this entry. Please try again.',
+          : isEditing
+            ? 'We could not update this memory. Please try again.'
+            : 'We could not save this entry. Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -241,15 +298,19 @@ export function CreateEntryForm({
   return (
     <form className="entry-form" onSubmit={handleSubmit} noValidate>
       <div className="entry-form__heading">
-        <p className="eyebrow">NEW MEMORY</p>
-        <h2>Capture the moment.</h2>
-        <p>Record the details you'll want to remember later.</p>
+        <p className="eyebrow">{isEditing ? 'EDIT MEMORY' : 'NEW MEMORY'}</p>
+        <h2>{isEditing ? 'Refine the moment.' : 'Capture the moment.'}</h2>
+        <p>
+          {isEditing
+            ? 'Update the details you want to remember later.'
+            : "Record the details you'll want to remember later."}
+        </p>
       </div>
 
       <div className="entry-section">
-        <label htmlFor="entry-title">Title *</label>
+        <label htmlFor={fieldId("title")}>Title *</label>
         <input
-          id="entry-title"
+          id={fieldId("title")}
           value={form.title}
           onChange={(event) => update('title', event.target.value)}
           placeholder="Sunset in Oia"
@@ -259,9 +320,9 @@ export function CreateEntryForm({
 
         <div className="date-grid">
           <div>
-            <label htmlFor="entry-date">Date *</label>
+            <label htmlFor={fieldId("date")}>Date *</label>
             <input
-              id="entry-date"
+              id={fieldId("date")}
               type="date"
               value={form.date}
               onChange={(event) => update('date', event.target.value)}
@@ -271,9 +332,9 @@ export function CreateEntryForm({
           </div>
 
           <div>
-            <label htmlFor="entry-time">Time</label>
+            <label htmlFor={fieldId("time")}>Time</label>
             <input
-              id="entry-time"
+              id={fieldId("time")}
               type="time"
               value={form.time}
               onChange={(event) => update('time', event.target.value)}
@@ -282,9 +343,9 @@ export function CreateEntryForm({
           </div>
         </div>
 
-        <label htmlFor="entry-story">Story *</label>
+        <label htmlFor={fieldId("story")}>Story *</label>
         <textarea
-          id="entry-story"
+          id={fieldId("story")}
           value={form.story}
           onChange={(event) => update('story', event.target.value)}
           placeholder="What happened? What made this moment worth remembering?"
@@ -293,9 +354,9 @@ export function CreateEntryForm({
           disabled={isSubmitting}
         />
 
-        <label htmlFor="entry-highlight">Highlight</label>
+        <label htmlFor={fieldId("highlight")}>Highlight</label>
         <input
-          id="entry-highlight"
+          id={fieldId("highlight")}
           value={form.highlight}
           onChange={(event) => update('highlight', event.target.value)}
           placeholder="The best sunset of the entire trip."
@@ -327,9 +388,9 @@ export function CreateEntryForm({
       </div>
 
       <div className="entry-section">
-        <label htmlFor="entry-memory-type">Memory type</label>
+        <label htmlFor={fieldId("memory-type")}>Memory type</label>
         <select
-          id="entry-memory-type"
+          id={fieldId("memory-type")}
           value={form.memoryType}
           onChange={(event) => update('memoryType', event.target.value as MemoryType | '')}
           disabled={isSubmitting}
@@ -342,9 +403,9 @@ export function CreateEntryForm({
           ))}
         </select>
 
-        <label htmlFor="entry-people">People I was with</label>
+        <label htmlFor={fieldId("people")}>People I was with</label>
         <input
-          id="entry-people"
+          id={fieldId("people")}
           value={peopleText}
           onChange={(event) => setPeopleText(event.target.value)}
           placeholder="Sarah, Ahmed, Mom"
@@ -352,9 +413,9 @@ export function CreateEntryForm({
         />
         <p className="field-hint">Separate names with commas.</p>
 
-        <label htmlFor="entry-tags">Tags</label>
+        <label htmlFor={fieldId("tags")}>Tags</label>
         <input
-          id="entry-tags"
+          id={fieldId("tags")}
           value={tagsText}
           onChange={(event) => setTagsText(event.target.value)}
           placeholder="sunset, family, food"
@@ -619,9 +680,11 @@ export function CreateEntryForm({
         </p>
       )}
 
-      <button className="primary-button" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving memory…' : 'Save Memory'}
-      </button>
+      <button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting
+          ? 'Saving memory…'
+          : isEditing
+            ? 'Save Changes'
+            : 'Save Memory'}</button>
     </form>
   );
 }

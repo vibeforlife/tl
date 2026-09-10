@@ -50,7 +50,10 @@ export function JourneyHome({
       <JourneyDetail
         user={user}
         journeyId={selectedJourneyId}
-        onBack={() => setSelectedJourneyId(null)}
+        onBack={() => {
+          setSelectedJourneyId(null);
+          void loadJourneys();
+        }}
       />
     );
   }

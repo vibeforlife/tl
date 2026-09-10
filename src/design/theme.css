@@ -3361,3 +3361,139 @@ select:focus {
     min-height: 150px;
   }
 }
+
+/* =========================================================
+   MEMORY DELETE STYLING — STAGE 2B
+   Scoped only to Memory Delete actions and confirmation.
+   ========================================================= */
+
+.entry-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.entry-action-button--danger {
+  border-color: rgba(224, 108, 108, 0.22);
+  background: rgba(224, 108, 108, 0.035);
+  color: rgba(224, 108, 108, 0.78);
+}
+
+.entry-action-button--danger:hover {
+  border-color: rgba(224, 108, 108, 0.48);
+  background: rgba(224, 108, 108, 0.10);
+  color: #e88b8b;
+}
+
+.entry-action-button--danger:focus-visible {
+  outline-color: rgba(224, 108, 108, 0.55);
+}
+
+/* Memory Delete modal */
+
+.journey-modal--danger .journey-modal__panel {
+  border-color: rgba(224, 108, 108, 0.16);
+}
+
+.journey-modal--danger .journey-modal__header {
+  border-bottom-color: rgba(224, 108, 108, 0.10);
+}
+
+.journey-modal--danger .eyebrow {
+  color: rgba(224, 108, 108, 0.78);
+}
+
+.journey-modal--danger .journey-modal__body > p:first-child {
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.journey-modal--danger .journey-modal__body > p:first-child strong {
+  color: #f0d9d9;
+}
+
+.journey-modal--danger .journey-delete-confirmation {
+  margin-top: 22px;
+  border-color: rgba(224, 108, 108, 0.18);
+  background: rgba(224, 108, 108, 0.035);
+}
+
+.journey-modal--danger .journey-delete-confirmation:hover {
+  border-color: rgba(224, 108, 108, 0.32);
+  background: rgba(224, 108, 108, 0.055);
+}
+
+.journey-modal--danger
+  .journey-delete-confirmation
+  input[type='checkbox']:checked {
+  accent-color: #d96f6f;
+}
+
+.journey-modal--danger .journey-delete-confirmation__text strong {
+  color: #ead4d4;
+}
+
+.journey-modal--danger .journey-modal__actions {
+  margin-top: 26px;
+}
+
+.journey-modal--danger .danger-button {
+  border: 1px solid rgba(224, 108, 108, 0.42);
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: rgba(224, 108, 108, 0.12);
+  color: #f0b1b1;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.journey-modal--danger .danger-button:hover:not(:disabled) {
+  border-color: rgba(224, 108, 108, 0.68);
+  background: rgba(224, 108, 108, 0.19);
+  color: #ffd1d1;
+  transform: translateY(-1px);
+}
+
+.journey-modal--danger .danger-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.journey-modal--danger .danger-button:focus-visible {
+  outline: 2px solid rgba(224, 108, 108, 0.55);
+  outline-offset: 3px;
+}
+
+.journey-modal--danger .danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+@media (max-width: 640px) {
+  .entry-actions {
+    gap: 5px;
+  }
+
+  .entry-action-button--danger {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .journey-modal--danger .journey-modal__actions {
+    gap: 10px;
+  }
+
+  .journey-modal--danger .danger-button,
+  .journey-modal--danger .secondary-button {
+    min-height: 42px;
+  }
+}

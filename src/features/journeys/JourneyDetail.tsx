@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/firestore';
 import type { Entry, Journey, JourneyRole } from '../../types/domain';
-import { listJourneyEntries } from '../../services/firebase/entries';
+import { deleteEntry, listJourneyEntries } from '../../services/firebase/entries';
 import {
   deleteJourney,
   getJourneyMember,
@@ -102,6 +102,9 @@ export function JourneyDetail({
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [managementError, setManagementError] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
+  const [deleteEntryConfirmed, setDeleteEntryConfirmed] = useState(false);
+  const [isDeletingEntry, setIsDeletingEntry] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -343,6 +346,43 @@ export function JourneyDetail({
   const handleEntryUpdated = async () => {
     await load();
     setEditingEntry(null);
+  };
+
+  const openDeleteEntry = (entry: Entry) => {
+    if (!canEditJourney) return;
+
+    setDeletingEntry(entry);
+    setDeleteEntryConfirmed(false);
+    setManagementError(null);
+  };
+
+  const closeDeleteEntry = () => {
+    if (isDeletingEntry) return;
+
+    setDeletingEntry(null);
+    setDeleteEntryConfirmed(false);
+  };
+
+  const handleDeleteEntry = async () => {
+    if (!deletingEntry || !canEditJourney || !deleteEntryConfirmed) return;
+
+    setIsDeletingEntry(true);
+    setManagementError(null);
+
+    try {
+      await deleteEntry(journeyId, deletingEntry.id);
+      await load();
+      setDeletingEntry(null);
+      setDeleteEntryConfirmed(false);
+    } catch (deleteError) {
+      setManagementError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'We could not delete this memory.',
+      );
+    } finally {
+      setIsDeletingEntry(false);
+    }
   };
 
   const handleDeleteJourney = async () => {
@@ -742,18 +782,33 @@ export function JourneyDetail({
                             <div className="entry-river-title-row">
                               <h3>{entry.title}</h3>
                               {canEditJourney && (
-                                <button
-                                  className="entry-action-button"
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openEditEntry(entry);
-                                  }}
-                                  aria-label={`Edit ${entry.title}`}
-                                >
-                                  Edit
-                                </button>
+                                <span className="entry-actions">
+                                  <button
+                                    className="entry-action-button"
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      openEditEntry(entry);
+                                    }}
+                                    aria-label={`Edit ${entry.title}`}
+                                  >
+                                    Edit
+                                  </button>
+
+                                  <button
+                                    className="entry-action-button entry-action-button--danger"
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      openDeleteEntry(entry);
+                                    }}
+                                    aria-label={`Delete ${entry.title}`}
+                                  >
+                                    Delete
+                                  </button>
+                                </span>
                               )}
                             </div>
 
@@ -836,14 +891,25 @@ export function JourneyDetail({
                           <div className="entry-card__title-row">
                             <h3>{entry.title}</h3>
                             {canEditJourney && (
-                              <button
-                                className="entry-action-button"
-                                type="button"
-                                onClick={() => openEditEntry(entry)}
-                                aria-label={`Edit ${entry.title}`}
-                              >
-                                Edit
-                              </button>
+                              <span className="entry-actions">
+                                <button
+                                  className="entry-action-button"
+                                  type="button"
+                                  onClick={() => openEditEntry(entry)}
+                                  aria-label={`Edit ${entry.title}`}
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  className="entry-action-button entry-action-button--danger"
+                                  type="button"
+                                  onClick={() => openDeleteEntry(entry)}
+                                  aria-label={`Delete ${entry.title}`}
+                                >
+                                  Delete
+                                </button>
+                              </span>
                             )}
                           </div>
 
@@ -963,6 +1029,90 @@ export function JourneyDetail({
           />
         )}
       </section>
+      {deletingEntry && (
+        <div
+          className="journey-modal journey-modal--danger"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-memory-title"
+        >
+          <div
+            className="journey-modal__backdrop"
+            onClick={closeDeleteEntry}
+            aria-hidden="true"
+          />
+
+          <div className="journey-modal__panel">
+            <div className="journey-modal__header">
+              <div>
+                <p className="eyebrow">DELETE MEMORY</p>
+                <h2 id="delete-memory-title">Let this memory go?</h2>
+              </div>
+
+              <button
+                className="journey-modal__close"
+                type="button"
+                onClick={closeDeleteEntry}
+                aria-label="Close delete memory"
+                disabled={isDeletingEntry}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="journey-modal__body">
+              <p>
+                You are about to permanently delete{' '}
+                <strong>{deletingEntry.title}</strong>.
+              </p>
+
+              <p>
+                This removes the memory and its details from Travel Lore.
+                This action cannot be undone.
+              </p>
+
+              <label className="journey-delete-confirmation">
+                <input
+                  type="checkbox"
+                  checked={deleteEntryConfirmed}
+                  onChange={(event) =>
+                    setDeleteEntryConfirmed(event.target.checked)
+                  }
+                  disabled={isDeletingEntry}
+                />
+                <span className="journey-delete-confirmation__text">
+                  <strong>I understand this is permanent.</strong>
+                  <span>
+                    I confirm that I want to permanently delete this
+                    memory and all of its associated Travel Lore content.
+                  </span>
+                </span>
+              </label>
+
+              <div className="journey-modal__actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={closeDeleteEntry}
+                  disabled={isDeletingEntry}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="danger-button"
+                  type="button"
+                  onClick={() => void handleDeleteEntry()}
+                  disabled={!deleteEntryConfirmed || isDeletingEntry}
+                >
+                  {isDeletingEntry ? 'Deleting…' : 'Delete Memory'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editingEntry && (
         <div
           className="journey-modal"

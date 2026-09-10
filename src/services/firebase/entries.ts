@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   orderBy,
@@ -255,5 +256,14 @@ export const updateEntry = async (
   await updateDoc(
     doc(db, 'journeys', journeyId, 'entries', entryId),
     buildEntryUpdate(input),
+  );
+};
+
+export const deleteEntry = async (
+  journeyId: string,
+  entryId: string,
+): Promise<void> => {
+  await deleteDoc(
+    doc(db, 'journeys', journeyId, 'entries', entryId),
   );
 };

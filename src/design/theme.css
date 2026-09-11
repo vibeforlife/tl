@@ -3937,3 +3937,87 @@ select:focus {
   outline: 2px solid rgba(79, 198, 190, 0.9);
   outline-offset: 2px;
 }
+
+
+/* =========================================================
+   MEMORY TIMELINE — COMPACT REFINEMENT V1
+   Local visual refinement only.
+   Keeps the existing timeline structure and spine intact.
+   ========================================================= */
+
+/*
+ * 1. Tighter vertical rhythm
+ *
+ * Let the content determine the row height instead of forcing
+ * a large minimum height. The timeline should feel like a
+ * continuous travel journal rather than a stack of cards.
+ */
+.journey-detail .entry-river-summary {
+  min-height: 0;
+  padding: 9px 0;
+}
+
+/*
+ * 2. Reclaim horizontal space
+ *
+ * The marker and date remain visually distinct, but their
+ * structural footprint is intentionally smaller.
+ */
+.journey-detail .entry-river-summary {
+  grid-template-columns: 24px 40px minmax(0, 1fr);
+  column-gap: 8px;
+}
+
+/*
+ * 3. Stack entry actions vertically.
+ *
+ * This gives the title/story column substantially more room
+ * while keeping Edit and Delete immediately accessible.
+ */
+.journey-detail .entry-actions {
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+/*
+ * Keep the title/action relationship compact and predictable.
+ */
+.journey-detail .entry-river-title-row {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/*
+ * 4. Mobile refinement
+ *
+ * On narrow screens, reduce the timeline footprint further.
+ * The date remains readable but no longer consumes valuable
+ * storytelling width.
+ */
+@media (max-width: 480px) {
+  .journey-detail .entry-river-summary {
+    grid-template-columns: 20px 34px minmax(0, 1fr);
+    column-gap: 6px;
+    min-height: 0;
+    padding: 8px 0;
+  }
+
+  .journey-detail .entry-river-summary > .entry-river-marker {
+    width: 20px;
+    height: 20px;
+  }
+
+  .journey-detail .entry-river-title-row {
+    gap: 7px;
+  }
+
+  .journey-detail .entry-actions {
+    gap: 3px;
+  }
+
+  .journey-detail .entry-river-summary > .entry-river-content {
+    padding-right: 26px;
+  }
+}

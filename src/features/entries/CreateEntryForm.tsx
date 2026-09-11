@@ -89,13 +89,19 @@ export function CreateEntryForm({
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   const isEditing = Boolean(entry);
 
   const fieldId = (name: string) => `${idPrefix}-${name}`;
 
   useEffect(() => {
-    if (!entry) return;
+    if (!entry) {
+      setShowAdditionalDetails(false);
+      return;
+    }
+
+    setShowAdditionalDetails(true);
 
     setForm({
       title: entry.title,
@@ -253,6 +259,7 @@ export function CreateEntryForm({
           longitude: '',
         });
         setShowManualLocation(false);
+        setShowAdditionalDetails(false);
 
         await onCreated();
       }
@@ -307,7 +314,7 @@ export function CreateEntryForm({
         </p>
       </div>
 
-      <div className="entry-section">
+      <div className="entry-section entry-section--primary">
         <label htmlFor={fieldId("title")}>Title *</label>
         <input
           id={fieldId("title")}
@@ -318,7 +325,7 @@ export function CreateEntryForm({
           disabled={isSubmitting}
         />
 
-        <div className="date-grid">
+        <div className="date-grid date-grid--single">
           <div>
             <label htmlFor={fieldId("date")}>Date *</label>
             <input
@@ -327,17 +334,6 @@ export function CreateEntryForm({
               value={form.date}
               onChange={(event) => update('date', event.target.value)}
               required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label htmlFor={fieldId("time")}>Time</label>
-            <input
-              id={fieldId("time")}
-              type="time"
-              value={form.time}
-              onChange={(event) => update('time', event.target.value)}
               disabled={isSubmitting}
             />
           </div>
@@ -354,16 +350,45 @@ export function CreateEntryForm({
           disabled={isSubmitting}
         />
 
-        <label htmlFor={fieldId("highlight")}>Highlight</label>
-        <input
-          id={fieldId("highlight")}
-          value={form.highlight}
-          onChange={(event) => update('highlight', event.target.value)}
-          placeholder="The best sunset of the entire trip."
+        <button
+          type="button"
+          className="secondary-button entry-details-toggle"
+          onClick={() => setShowAdditionalDetails((current) => !current)}
           disabled={isSubmitting}
-        />
+          aria-expanded={showAdditionalDetails}
+        >
+          {showAdditionalDetails ? '− Hide additional details' : '+ Add more details'}
+        </button>
+
+        {showAdditionalDetails && (
+          <div className="entry-details">
+            <div className="date-grid">
+              <div>
+                <label htmlFor={fieldId("time")}>Time</label>
+                <input
+                  id={fieldId("time")}
+                  type="time"
+                  value={form.time}
+                  onChange={(event) => update('time', event.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <label htmlFor={fieldId("highlight")}>Highlight</label>
+            <input
+              id={fieldId("highlight")}
+              value={form.highlight}
+              onChange={(event) => update('highlight', event.target.value)}
+              placeholder="The best sunset of the entire trip."
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
       </div>
 
+      {showAdditionalDetails && (
+        <div className="entry-details entry-details--sections">
       <div className="entry-section">
         <div className="entry-section__title">
           <span>Rating</span>
@@ -673,6 +698,9 @@ export function CreateEntryForm({
           + Add photo link
         </button>
       </div>
+
+        </div>
+      )}
 
       {error && (
         <p className="auth-error" role="alert">

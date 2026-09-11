@@ -1110,6 +1110,37 @@ select:focus {
 }
 
 
+
+/* Travel Lore — expandable memory details */
+.entry-section--primary {
+  gap: 12px;
+}
+
+.entry-details-toggle {
+  margin-top: 4px;
+  justify-self: start;
+}
+
+.entry-details {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.entry-details--sections {
+  gap: 20px;
+}
+
+.date-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .date-grid--single {
+    max-width: 50%;
+  }
+}
+
 /* Travel Lore — compact memory browsing */
 .sr-only {
   position: absolute;

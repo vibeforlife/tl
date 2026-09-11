@@ -88,8 +88,8 @@ service cloud.firestore {
           && request.resource.data.story is string
           && request.resource.data.people is list
           && request.resource.data.tags is list
-          && request.resource.data.photos is list
-          && request.resource.data.costs is list;
+          && request.resource.data.costs is list
+          && (!('photo' in request.resource.data) || request.resource.data.photo is map);
 
         allow update: if canEditJourney(journeyId)
           && request.resource.data.createdBy == resource.data.createdBy;
@@ -99,9 +99,6 @@ service cloud.firestore {
     }
 
     match /invitations/{invitationId} {
-      // V1 sharing links are created only by the Journey owner.
-      // Redemption/read access will be added separately when we build
-      // the recipient flow.
       allow read: if false;
 
       allow create: if signedIn()

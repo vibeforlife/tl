@@ -3,12 +3,19 @@ import type { Timestamp } from 'firebase/firestore';
 export type JourneyRole = 'owner' | 'editor' | 'viewer';
 export type InvitationRole = Exclude<JourneyRole, 'owner'>;
 
+export interface EntryPhoto {
+  url: string;
+  caption?: string;
+}
+
 export interface Journey {
   id: string;
   name: string;
   place: string;
   startDate: string;
   endDate: string;
+  coverPhoto?: EntryPhoto;
+  googlePhotosUrl?: string;
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -54,11 +61,6 @@ export interface EntryCost {
   currency: string;
 }
 
-export interface EntryPhoto {
-  url: string;
-  caption?: string;
-}
-
 export interface Entry {
   id: string;
   journeyId: string;
@@ -72,7 +74,7 @@ export interface Entry {
   memoryType?: MemoryType;
   tags: string[];
   location?: EntryLocation;
-  photos: EntryPhoto[];
+  photo?: EntryPhoto;
   costs: EntryCost[];
   createdBy: string;
   createdAt: Timestamp;

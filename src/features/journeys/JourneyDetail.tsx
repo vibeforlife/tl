@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
   doc,
@@ -20,6 +20,11 @@ import {
 } from '../../services/firebase/journeys';
 import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
+const JourneyMap = lazy(() =>
+  import('./JourneyMap').then(({ JourneyMap }) => ({
+    default: JourneyMap,
+  })),
+);
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -402,6 +407,27 @@ export function JourneyDetail({
     setEditingEntry(null);
   };
 
+  const handleViewEntryFromMap = (entry: Entry) => {
+    setEntryViewMode('compact');
+
+    requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(
+        `[data-entry-id="${entry.id}"]`,
+      );
+
+      if (!target) return;
+
+      if (target instanceof HTMLDetailsElement) {
+        target.open = true;
+      }
+
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+  };
+
   const openDeleteEntry = (entry: Entry) => {
     if (!canEditJourney) return;
 
@@ -757,10 +783,14 @@ export function JourneyDetail({
                   </button>
 
                   <button
-                    className="entry-view-button"
+                    className={
+                      entryViewMode === 'map'
+                        ? 'entry-view-button entry-view-button--active'
+                        : 'entry-view-button'
+                    }
                     type="button"
-                    disabled
-                    title="Map view is coming next"
+                    onClick={() => setEntryViewMode('map')}
+                    aria-pressed={entryViewMode === 'map'}
                   >
                     Map
                   </button>
@@ -849,11 +879,43 @@ export function JourneyDetail({
                 <div
                   className={`entry-display-area entry-display-area--${entryViewMode}`}
                 >
+                  <div className="entry-display-area__map">
+                    <Suspense
+
+                      fallback={
+
+                        <div className="journey-map journey-map--loading">
+
+                          <div className="journey-map__message">
+
+                            <p className="eyebrow">JOURNEY MAP</p>
+
+                            <h3>Loading your map…</h3>
+
+                            <p>Preparing the places in this journey.</p>
+
+                          </div>
+
+                        </div>
+
+                      }
+
+                    >
+
+                      <JourneyMap
+                        entries={sortedEntries}
+                        onViewEntry={handleViewEntryFromMap}
+                      />
+
+                    </Suspense>
+                  </div>
+
                   <div className="entry-display-area__compact">
                     {sortedEntries.map((entry) => (
                       <details
                         className="entry-river-item"
                         key={`compact-${entry.id}`}
+                        data-entry-id={entry.id}
                       >
                         <summary className="entry-river-summary">
                           <div className="entry-river-marker" aria-hidden="true">

@@ -3621,3 +3621,319 @@ select:focus {
     width: fit-content;
   }
 }
+
+/* =========================================================
+   Travel Lore — Journey Map V1
+   Functional map treatment. Visual refinement comes later.
+   ========================================================= */
+
+.entry-display-area__map {
+  display: none;
+}
+
+.entry-display-area--map .entry-display-area__map {
+  display: block;
+}
+
+.entry-display-area--map .entry-display-area__compact,
+.entry-display-area--map .entry-display-area__cards {
+  display: none;
+}
+
+.journey-map {
+  position: relative;
+  width: 100%;
+  min-height: 620px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 24px;
+  background: #07131f;
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.journey-map__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 620px;
+}
+
+.journey-map__canvas .mapboxgl-map {
+  width: 100%;
+  height: 100%;
+}
+
+.journey-map__canvas .mapboxgl-ctrl-group {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(5,15,24,.86);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.journey-map__canvas .mapboxgl-ctrl-group button {
+  background-color: transparent;
+}
+
+.journey-map__canvas .mapboxgl-ctrl-group button + button {
+  border-top-color: rgba(255,255,255,.08);
+}
+
+.journey-map__canvas .mapboxgl-ctrl-attrib {
+  color: rgba(243,240,232,.48);
+  background: rgba(4,10,16,.72);
+}
+
+.journey-map__canvas .mapboxgl-ctrl-attrib a {
+  color: rgba(243,240,232,.62);
+}
+
+.journey-map-marker {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(64,199,189,.72);
+  border-radius: 50%;
+  background: rgba(5,20,28,.92);
+  box-shadow:
+    0 0 0 5px rgba(64,199,189,.10),
+    0 8px 20px rgba(0,0,0,.35);
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.journey-map-marker:hover,
+.journey-map-marker:focus-visible {
+  transform: scale(1.14);
+  outline: none;
+  box-shadow:
+    0 0 0 7px rgba(64,199,189,.14),
+    0 10px 26px rgba(0,0,0,.40);
+}
+
+.journey-map-marker__inner {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #40c7bd;
+  box-shadow: 0 0 14px rgba(64,199,189,.72);
+}
+
+.journey-map__legend {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  color: rgba(243,240,232,.68);
+  background: rgba(4,12,19,.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.22);
+  font-size: .72rem;
+  letter-spacing: .03em;
+}
+
+.journey-map__legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #40c7bd;
+  box-shadow: 0 0 10px rgba(64,199,189,.65);
+}
+
+.journey-map__selected {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  left: 18px;
+  width: min(360px, calc(100% - 36px));
+  padding: 22px 24px 20px;
+  border: 1px solid rgba(64,199,189,.24);
+  border-radius: 18px;
+  background: rgba(5,15,24,.90);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.journey-map__selected .eyebrow {
+  margin-bottom: 8px;
+}
+
+.journey-map__selected h3 {
+  margin: 0;
+  color: #f3f0e8;
+  font-family: Georgia,"Times New Roman",serif;
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1.12;
+}
+
+.journey-map__selected-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  color: rgba(243,240,232,.58);
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.journey-map__selected-close:hover {
+  color: #f3f0e8;
+}
+
+.journey-map__selected-location {
+  display: flex;
+  gap: 7px;
+  margin: 14px 0 0;
+  color: #40c7bd;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.journey-map__selected-address {
+  margin: 5px 0 0 18px;
+  color: rgba(243,240,232,.48);
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.journey-map__selected-highlight {
+  margin: 16px 0 0;
+  color: rgba(243,240,232,.76);
+  font-family: Georgia,"Times New Roman",serif;
+  font-size: .92rem;
+  line-height: 1.55;
+}
+
+.journey-map__selected-note {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: rgba(243,240,232,.38);
+  font-size: .68rem;
+}
+
+.journey-map--empty,
+.journey-map--unavailable {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+}
+
+.journey-map__message {
+  width: min(440px, calc(100% - 48px));
+  text-align: center;
+}
+
+.journey-map__message .eyebrow {
+  margin-bottom: 10px;
+}
+
+.journey-map__message h3 {
+  margin: 0;
+  color: #f3f0e8;
+  font-family: Georgia,"Times New Roman",serif;
+  font-size: 1.7rem;
+  font-weight: 400;
+}
+
+.journey-map__message p:last-child {
+  margin: 14px auto 0;
+  color: rgba(243,240,232,.50);
+  font-size: .82rem;
+  line-height: 1.6;
+}
+
+.journey-map__empty-mark {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 20px;
+  border: 1px solid rgba(64,199,189,.30);
+  border-radius: 50%;
+  color: #40c7bd;
+  background: rgba(64,199,189,.05);
+  font-size: 1.4rem;
+}
+
+@media (max-width: 640px) {
+  .journey-map,
+  .journey-map__canvas {
+    min-height: 500px;
+  }
+
+  .journey-map__selected {
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+    padding: 18px 20px;
+  }
+
+  .journey-map__legend {
+    left: 12px;
+    bottom: 12px;
+  }
+}
+
+/* Travel Lore — Journey Map loading state */
+.journey-map--loading {
+  min-height: 520px;
+  display: grid;
+  place-items: center;
+}
+
+.journey-map--loading .journey-map__message {
+  position: static;
+  max-width: 420px;
+  text-align: center;
+}
+
+
+/* Travel Lore — Journey Map memory navigation */
+.journey-map__selected-view {
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(79, 198, 190, 0.35);
+  border-radius: 10px;
+  background: rgba(79, 198, 190, 0.08);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.journey-map__selected-view:hover {
+  border-color: rgba(79, 198, 190, 0.7);
+  background: rgba(79, 198, 190, 0.14);
+  transform: translateY(-1px);
+}
+
+.journey-map__selected-view:focus-visible {
+  outline: 2px solid rgba(79, 198, 190, 0.9);
+  outline-offset: 2px;
+}

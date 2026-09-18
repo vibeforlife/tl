@@ -3329,14 +3329,6 @@ select:focus {
   min-width: 0;
 }
 
-.memory-edit-modal__body {
-  max-height: min(72vh, 820px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 6px;
-  scrollbar-width: thin;
-}
-
 .memory-edit-modal__body form {
   width: 100%;
 }

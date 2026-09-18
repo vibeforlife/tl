@@ -56,6 +56,7 @@ export interface EntryCost {
 
 export interface EntryPhoto {
   url: string;
+  storagePath: string;
   caption?: string;
 }
 
@@ -72,7 +73,7 @@ export interface Entry {
   memoryType?: MemoryType;
   tags: string[];
   location?: EntryLocation;
-  photos: EntryPhoto[];
+  photo?: EntryPhoto;
   costs: EntryCost[];
   createdBy: string;
   createdAt: Timestamp;

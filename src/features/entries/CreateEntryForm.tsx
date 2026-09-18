@@ -1,12 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
 import {
   createEntry,
+  deleteEntry,
   updateEntry,
   validateEntryInput,
   type CreateEntryInput,
 } from '../../services/firebase/entries';
+import {
+  deleteStorageFile,
+  uploadEntryPhoto,
+  validateImageFile,
+} from '../../services/firebase/storage';
 import type {
   Entry,
   EntryCost,
@@ -16,6 +22,68 @@ import type {
 } from '../../types/domain';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+
+const mapboxTheme = {
+  variables: {
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    unit: '13px',
+    padding: '10px',
+    border: '1px solid rgba(255,255,255,.12)',
+    borderRadius: '12px',
+    boxShadow: '0 18px 42px rgba(0,0,0,.32)',
+    colorText: '#f3f0e8',
+    colorPrimary: '#40c7bd',
+    colorSecondary: 'rgba(243,240,232,.48)',
+    colorBackground: '#07141e',
+    colorBackgroundHover: '#0d1b2a',
+    colorBackgroundActive: '#102433',
+  },
+  cssText: `
+    .SearchBox {
+      width: 100%;
+    }
+
+    .Input {
+      min-height: 48px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      background: rgba(2,10,17,.62);
+      color: #f3f0e8;
+      box-shadow: none;
+    }
+
+    .Input {
+      color: #f3f0e8 !important;
+      --colorText: #f3f0e8;
+    }
+
+    .Input::placeholder {
+      color: rgba(243,240,232,.38) !important;
+      opacity: 1;
+    }
+
+    .Input:focus {
+      border-color: rgba(64,199,189,.75);
+      background: rgba(2,10,17,.82);
+      box-shadow: 0 0 0 3px rgba(64,199,189,.1);
+    }
+
+    .Input::placeholder {
+      color: rgba(243,240,232,.38);
+    }
+
+    .Results {
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: #07141e;
+      box-shadow: 0 18px 42px rgba(0,0,0,.32);
+    }
+
+    .Suggestion:hover {
+      background: rgba(64,199,189,.08);
+    }
+  `,
+};
 
 const memoryTypes: Array<{ value: MemoryType; label: string }> = [
   { value: 'place', label: 'Place' },
@@ -41,11 +109,6 @@ const blankCost = (): EntryCost => ({
   category: 'other',
   amount: 0,
   currency: 'CAD',
-});
-
-const blankPhoto = (): EntryPhoto => ({
-  url: '',
-  caption: '',
 });
 
 export function CreateEntryForm({
@@ -74,12 +137,16 @@ export function CreateEntryForm({
     memoryType: '',
     tags: [],
     location: undefined,
-    photos: [],
+    photo: undefined,
     costs: [],
   });
 
   const [peopleText, setPeopleText] = useState('');
   const [tagsText, setTagsText] = useState('');
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [pendingPhotoPreviewUrl, setPendingPhotoPreviewUrl] = useState<string | null>(null);
+  const [photoCaption, setPhotoCaption] = useState('');
+  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [manualLocation, setManualLocation] = useState({
     name: '',
     address: '',
@@ -92,6 +159,20 @@ export function CreateEntryForm({
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   const isEditing = Boolean(entry);
+
+  useEffect(() => {
+    if (!pendingPhotoFile) {
+      setPendingPhotoPreviewUrl(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(pendingPhotoFile);
+    setPendingPhotoPreviewUrl(previewUrl);
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [pendingPhotoFile]);
 
   const fieldId = (name: string) => `${idPrefix}-${name}`;
 
@@ -114,12 +195,15 @@ export function CreateEntryForm({
       memoryType: entry.memoryType ?? '',
       tags: entry.tags,
       location: entry.location,
-      photos: entry.photos,
+      photo: entry.photo,
       costs: entry.costs,
     });
 
     setPeopleText(entry.people.join(', '));
     setTagsText(entry.tags.join(', '));
+    setPendingPhotoFile(null);
+    setPhotoCaption(entry.photo?.caption ?? '');
+    setRemoveExistingPhoto(false);
 
     setManualLocation({
       name: entry.location?.name ?? '',
@@ -211,14 +295,20 @@ export function CreateEntryForm({
 
     const location = buildLocation();
 
-    const nextForm = {
+    const nextForm: CreateEntryInput = {
       ...form,
       people,
       tags,
       location,
     };
 
-    const validationError = validateEntryInput(nextForm);
+    const validationError = validateEntryInput({
+      ...nextForm,
+      photo:
+        entry && !pendingPhotoFile && !removeExistingPhoto
+          ? nextForm.photo
+          : undefined,
+    });
 
     if (validationError) {
       setError(validationError);
@@ -230,10 +320,115 @@ export function CreateEntryForm({
 
     try {
       if (entry) {
-        await updateEntry(journeyId, entry.id, nextForm);
+        const oldPhoto = entry.photo;
+        let uploadedPhoto: EntryPhoto | undefined;
+
+        if (pendingPhotoFile) {
+          const uploaded = await uploadEntryPhoto(
+            user.uid,
+            journeyId,
+            entry.id,
+            pendingPhotoFile,
+          );
+
+          uploadedPhoto = {
+            url: uploaded.url,
+            storagePath: uploaded.path,
+            ...(photoCaption.trim()
+              ? { caption: photoCaption.trim() }
+              : {}),
+          };
+        }
+
+        const photoForSave = pendingPhotoFile
+          ? uploadedPhoto
+          : removeExistingPhoto
+            ? undefined
+            : nextForm.photo
+              ? {
+                  ...nextForm.photo,
+                  ...(photoCaption.trim()
+                    ? { caption: photoCaption.trim() }
+                    : { caption: undefined }),
+                }
+              : undefined;
+
+        try {
+          await updateEntry(journeyId, entry.id, {
+            ...nextForm,
+            photo: photoForSave,
+          });
+        } catch (updateError) {
+          if (uploadedPhoto) {
+            try {
+              await deleteStorageFile(uploadedPhoto.storagePath);
+            } catch {
+              console.warn('Could not clean up the newly uploaded photo.', updateError);
+            }
+          }
+          throw updateError;
+        }
+
+        if (
+          oldPhoto &&
+          ((pendingPhotoFile && uploadedPhoto) || removeExistingPhoto) &&
+          oldPhoto.storagePath !== uploadedPhoto?.storagePath
+        ) {
+          try {
+            await deleteStorageFile(oldPhoto.storagePath);
+          } catch {
+            console.warn('Memory updated, but the previous photo could not be removed.');
+          }
+        }
+
         await onUpdated?.();
       } else {
-        await createEntry(user.uid, journeyId, nextForm);
+        const entryId = await createEntry(user.uid, journeyId, {
+          ...nextForm,
+          photo: undefined,
+        });
+
+        if (pendingPhotoFile) {
+          let uploadedPhoto: EntryPhoto | undefined;
+
+          try {
+            const uploaded = await uploadEntryPhoto(
+              user.uid,
+              journeyId,
+              entryId,
+              pendingPhotoFile,
+            );
+
+            uploadedPhoto = {
+              url: uploaded.url,
+              storagePath: uploaded.path,
+              ...(photoCaption.trim()
+                ? { caption: photoCaption.trim() }
+                : {}),
+            };
+
+            await updateEntry(journeyId, entryId, {
+              ...nextForm,
+              photo: uploadedPhoto,
+            });
+          } catch (photoError) {
+            if (uploadedPhoto) {
+              try {
+                await deleteStorageFile(uploadedPhoto.storagePath);
+              } catch {
+                console.warn('Could not clean up the uploaded photo after save failure.');
+              }
+            }
+
+            try {
+              await deleteEntry(journeyId, entryId);
+            } catch {
+              console.warn('Could not clean up the newly created memory after save failure.');
+            }
+
+            throw photoError;
+          }
+        }
 
         setForm({
           title: '',
@@ -246,12 +441,14 @@ export function CreateEntryForm({
           memoryType: '',
           tags: [],
           location: undefined,
-          photos: [],
+          photo: undefined,
           costs: [],
         });
-
         setPeopleText('');
         setTagsText('');
+        setPendingPhotoFile(null);
+        setPhotoCaption('');
+        setRemoveExistingPhoto(false);
         setManualLocation({
           name: '',
           address: '',
@@ -289,17 +486,22 @@ export function CreateEntryForm({
     }));
   };
 
-  const updatePhoto = (
-    index: number,
-    field: keyof EntryPhoto,
-    value: string,
-  ) => {
-    setForm((current) => ({
-      ...current,
-      photos: current.photos.map((photo, photoIndex) =>
-        photoIndex === index ? { ...photo, [field]: value } : photo,
-      ),
-    }));
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+
+    if (!file) return;
+
+    const validationError = validateImageFile(file);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setPendingPhotoFile(file);
+    setRemoveExistingPhoto(false);
+    setError(null);
   };
 
   return (
@@ -469,6 +671,7 @@ export function CreateEntryForm({
               placeholder="Search for a place or address"
               options={{ language: 'en' }}
               componentOptions={{ allowReverse: true }}
+              theme={mapboxTheme}
             />
 
             <p className="field-hint">
@@ -643,62 +846,129 @@ export function CreateEntryForm({
         </button>
       </div>
 
-      <div className="entry-section">
+      <div className="entry-section entry-section--photo">
         <div className="entry-section__title">
-          <span>Photos</span>
-          <span className="field-hint">Google Photos / album links</span>
+          <span>Anchor Photo</span>
+          <span className="field-hint">One representative photo for this memory</span>
         </div>
 
-        {form.photos.map((photo, index) => (
-          <div className="photo-row" key={index}>
-            <input
-              value={photo.url}
-              onChange={(event) => updatePhoto(index, 'url', event.target.value)}
-              placeholder="https://photos.google.com/..."
-              disabled={isSubmitting}
-              aria-label="Photo or album link"
-            />
+        {entry?.photo && !pendingPhotoFile && !removeExistingPhoto && (
+          <div className="photo-preview">
+            <a
+              className="photo-preview__image-link"
+              href={entry.photo.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open current anchor photo"
+            >
+              <img
+                className="photo-preview__image"
+                src={entry.photo.url}
+                alt={entry.photo.caption || 'Current anchor photo'}
+              />
+            </a>
+            <div className="photo-preview__details">
+              <span className="photo-preview__label">Current photo</span>
+              {entry.photo.caption && (
+                <span className="photo-preview__caption">{entry.photo.caption}</span>
+              )}
+              <button
+                type="button"
+                className="photo-remove-button"
+                onClick={() => {
+                  setRemoveExistingPhoto(true);
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Remove photo
+              </button>
+            </div>
+          </div>
+        )}
 
-            <input
-              value={photo.caption || ''}
-              onChange={(event) => updatePhoto(index, 'caption', event.target.value)}
-              placeholder="Caption"
-              disabled={isSubmitting}
-              aria-label="Photo caption"
-            />
+        {pendingPhotoFile && (
+          <div className="photo-preview">
+            <div className="photo-preview__image-link">
+              {pendingPhotoPreviewUrl ? (
+                <img
+                  className="photo-preview__image"
+                  src={pendingPhotoPreviewUrl}
+                  alt="Selected anchor photo preview"
+                />
+              ) : (
+                <div className="photo-preview__fallback">Photo selected</div>
+              )}
+            </div>
+            <div className="photo-preview__details">
+              <span className="photo-preview__label">New anchor photo</span>
+              <span className="photo-preview__filename">{pendingPhotoFile.name}</span>
+              <button
+                type="button"
+                className="photo-remove-button"
+                onClick={() => {
+                  setPendingPhotoFile(null);
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Remove selection
+              </button>
+            </div>
+          </div>
+        )}
 
+        {removeExistingPhoto && !pendingPhotoFile && (
+          <div className="photo-removal-notice">
+            <span>The current anchor photo will be removed when you save.</span>
             <button
               type="button"
-              className="icon-button"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  photos: current.photos.filter((_, photoIndex) => photoIndex !== index),
-                }))
-              }
+              className="secondary-button"
+              onClick={() => {
+                setRemoveExistingPhoto(false);
+                setError(null);
+              }}
               disabled={isSubmitting}
-              aria-label="Remove photo link"
             >
-              ×
+              Keep photo
             </button>
           </div>
-        ))}
+        )}
 
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() =>
-            setForm((current) => ({
-              ...current,
-              photos: [...current.photos, blankPhoto()],
-            }))
-          }
-          disabled={isSubmitting}
-        >
-          + Add photo link
-        </button>
+        {(pendingPhotoFile || entry?.photo) && !removeExistingPhoto && (
+          <>
+            <label htmlFor={fieldId('photo-caption')}>Caption</label>
+            <input
+              id={fieldId('photo-caption')}
+              value={photoCaption}
+              onChange={(event) => {
+                setPhotoCaption(event.target.value);
+                setError(null);
+              }}
+              placeholder="Optional caption"
+              disabled={isSubmitting}
+            />
+          </>
+        )}
+
+        <div className="photo-upload">
+          <input
+            id={fieldId('photo-file')}
+            className="photo-file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            onChange={handlePhotoChange}
+            disabled={isSubmitting}
+            aria-label="Choose anchor photo"
+          />
+          <label className="photo-upload-button" htmlFor={fieldId('photo-file')}>
+            {pendingPhotoFile || entry?.photo ? 'Choose a different photo' : 'Upload anchor photo'}
+          </label>
+          <span className="field-hint">
+            JPEG, PNG, WebP, HEIC, or HEIF. Maximum 20 MB; large photos are optimized before upload.
+          </span>
+        </div>
       </div>
-
         </div>
       )}
 

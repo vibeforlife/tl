@@ -32,7 +32,7 @@ export type CreateEntryInput = {
   memoryType: MemoryType | '';
   tags: string[];
   location: EntryLocation | undefined;
-  photos: EntryPhoto[];
+  photo?: EntryPhoto;
   costs: EntryCost[];
 };
 
@@ -74,15 +74,17 @@ export const validateEntryInput = (input: CreateEntryInput): string | null => {
     }
   }
 
-  for (const photo of input.photos) {
-    if (!photo.url.trim()) {
-      return 'Photo links cannot be empty.';
+  if (input.photo) {
+    if (!input.photo.url.trim()) {
+      return 'Photo URL cannot be empty.';
     }
-
+    if (!input.photo.storagePath.trim()) {
+      return 'Photo storage path cannot be empty.';
+    }
     try {
-      new URL(photo.url);
+      new URL(input.photo.url);
     } catch {
-      return 'Each photo link must be a valid URL.';
+      return 'Each photo URL must be valid.';
     }
   }
 
@@ -107,14 +109,15 @@ export const buildEntryDocument = (
       }
     : undefined;
 
-  const photos = input.photos
-    .filter((photo) => photo.url.trim())
-    .map((photo) => ({
-      url: photo.url.trim(),
-      ...(photo.caption?.trim()
-        ? { caption: photo.caption.trim() }
-        : {}),
-    }));
+  const photo = input.photo?.url.trim()
+    ? {
+        url: input.photo.url.trim(),
+        storagePath: input.photo.storagePath.trim(),
+        ...(input.photo.caption?.trim()
+          ? { caption: input.photo.caption.trim() }
+          : {}),
+      }
+    : undefined;
 
   const costs = input.costs.map((cost) => ({
     category: cost.category,
@@ -133,7 +136,7 @@ export const buildEntryDocument = (
     ...(input.memoryType ? { memoryType: input.memoryType } : {}),
     tags: input.tags.map((tag) => tag.trim()).filter(Boolean),
     ...(location ? { location } : {}),
-    photos,
+    ...(photo ? { photo } : {}),
     costs,
     createdBy: userId,
     createdAt: serverTimestamp(),
@@ -149,12 +152,13 @@ const mapEntry = (id: string, journeyId: string, data: DocumentData): Entry => (
   time: data.time as string | undefined,
   story: data.story as string,
   highlight: data.highlight as string | undefined,
-  rating: data.rating as number | undefined,
+  rating:
+    typeof data.rating === 'number' ? data.rating : undefined,
   people: Array.isArray(data.people) ? data.people as string[] : [],
   memoryType: data.memoryType as MemoryType | undefined,
   tags: Array.isArray(data.tags) ? data.tags as string[] : [],
   location: data.location as EntryLocation | undefined,
-  photos: Array.isArray(data.photos) ? data.photos as EntryPhoto[] : [],
+  photo: data.photo as EntryPhoto | undefined,
   costs: Array.isArray(data.costs) ? data.costs as EntryCost[] : [],
   createdBy: data.createdBy as string,
   createdAt: data.createdAt as Timestamp,
@@ -210,14 +214,15 @@ const buildEntryUpdate = (input: UpdateEntryInput) => {
       }
     : undefined;
 
-  const photos = input.photos
-    .filter((photo) => photo.url.trim())
-    .map((photo) => ({
-      url: photo.url.trim(),
-      ...(photo.caption?.trim()
-        ? { caption: photo.caption.trim() }
-        : {}),
-    }));
+  const photo = input.photo?.url.trim()
+    ? {
+        url: input.photo.url.trim(),
+        storagePath: input.photo.storagePath.trim(),
+        ...(input.photo.caption?.trim()
+          ? { caption: input.photo.caption.trim() }
+          : {}),
+      }
+    : undefined;
 
   const costs = input.costs.map((cost) => ({
     category: cost.category,
@@ -236,7 +241,7 @@ const buildEntryUpdate = (input: UpdateEntryInput) => {
     memoryType: input.memoryType || null,
     tags: input.tags.map((tag) => tag.trim()).filter(Boolean),
     location: location ?? null,
-    photos,
+    photo: photo ?? null,
     costs,
     updatedAt: serverTimestamp(),
   };

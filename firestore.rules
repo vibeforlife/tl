@@ -88,8 +88,20 @@ service cloud.firestore {
           && request.resource.data.story is string
           && request.resource.data.people is list
           && request.resource.data.tags is list
-          && request.resource.data.photos is list
-          && request.resource.data.costs is list;
+          && request.resource.data.costs is list
+          && (
+            !('photo' in request.resource.data)
+            || (
+              request.resource.data.photo is map
+              && request.resource.data.photo.keys().hasOnly(['url', 'storagePath', 'caption'])
+              && request.resource.data.photo.url is string
+              && request.resource.data.photo.storagePath is string
+              && (
+                !('caption' in request.resource.data.photo)
+                || request.resource.data.photo.caption is string
+              )
+            )
+          );
 
         allow update: if canEditJourney(journeyId)
           && request.resource.data.createdBy == resource.data.createdBy;

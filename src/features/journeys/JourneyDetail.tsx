@@ -1161,29 +1161,26 @@ export function JourneyDetail({
                             </div>
                           )}
 
-                          {entry.photos.length > 0 && (
+                          {entry.photo && (
                             <div className="entry-card__photos">
-                              {entry.photos.map((photo, index) => (
-                                <a
-                                  className="entry-card__photo"
-                                  key={photo.url}
-                                  href={photo.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  aria-label={
-                                    photo.caption || `Open photo ${index + 1}`
-                                  }
-                                >
-                                  <img
-                                    src={photo.url}
-                                    alt={photo.caption || ''}
-                                    loading="lazy"
-                                  />
-                                  <span>
-                                    {photo.caption || `Photo ${index + 1}`}
-                                  </span>
-                                </a>
-                              ))}
+                              <a
+                                className="entry-card__photo"
+                                href={entry.photo.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={
+                                  entry.photo.caption || 'Open anchor photo'
+                                }
+                              >
+                                <img
+                                  src={entry.photo.url}
+                                  alt={entry.photo.caption || ''}
+                                  loading="lazy"
+                                />
+                                <span>
+                                  {entry.photo.caption || 'Anchor photo'}
+                                </span>
+                              </a>
                             </div>
                           )}
                         </article>

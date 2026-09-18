@@ -23,12 +23,11 @@ const validEntry = (): CreateEntryInput => ({
     longitude: 25.3753,
     mapboxPlaceId: 'test-mapbox-id',
   },
-  photos: [
-    {
-      url: 'https://photos.google.com/example',
-      caption: 'Sunset',
-    },
-  ],
+  photo: {
+    url: 'https://storage.googleapis.com/example/photo.jpg',
+    storagePath: 'journeys/journey-1/entries/entry-1/user-123/photo.jpg',
+    caption: 'Sunset',
+  },
   costs: [
     {
       category: 'ride',
@@ -97,9 +96,12 @@ describe('Entry validation', () => {
     expect(
       validateEntryInput({
         ...validEntry(),
-        photos: [{ url: 'not-a-url' }],
+        photo: {
+          url: 'not-a-url',
+          storagePath: 'journeys/journey-1/entries/entry-1/user-123/photo.jpg',
+        },
       }),
-    ).toBe('Each photo link must be a valid URL.');
+    ).toBe('Each photo URL must be valid.');
   });
 });
 
@@ -114,12 +116,11 @@ describe('Entry Firestore serialization', () => {
         longitude: 2.2945,
         mapboxPlaceId: undefined,
       },
-      photos: [
-        {
-          url: 'https://photos.google.com/example',
-          caption: undefined,
-        },
-      ],
+      photo: {
+        url: 'https://storage.googleapis.com/example/photo.jpg',
+        storagePath: 'journeys/journey-1/entries/entry-1/user-123/photo.jpg',
+        caption: undefined,
+      },
     };
 
     const document = buildEntryDocument('user-123', input);
@@ -130,11 +131,10 @@ describe('Entry Firestore serialization', () => {
       longitude: 2.2945,
     });
 
-    expect(document.photos).toEqual([
-      {
-        url: 'https://photos.google.com/example',
-      },
-    ]);
+    expect(document.photo).toEqual({
+      url: 'https://storage.googleapis.com/example/photo.jpg',
+      storagePath: 'journeys/journey-1/entries/entry-1/user-123/photo.jpg',
+    });
   });
 
   it('preserves legitimate zero values', () => {

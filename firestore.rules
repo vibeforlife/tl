@@ -47,17 +47,54 @@ service cloud.firestore {
       }
     }
 
+    function validJourneyAnchorPhoto(photo) {
+      return photo is map
+        && photo.keys().hasOnly(['url', 'storagePath'])
+        && photo.url is string
+        && photo.storagePath is string;
+    }
+
+    function validGooglePhotosUrl(url) {
+      return url is string
+        && url.matches('https://.*');
+    }
+
     match /journeys/{journeyId} {
       allow create: if signedIn()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.name is string
         && request.resource.data.place is string
         && request.resource.data.startDate is string
-        && request.resource.data.endDate is string;
+        && request.resource.data.endDate is string
+        && (
+          !('anchorPhoto' in request.resource.data)
+          || validJourneyAnchorPhoto(request.resource.data.anchorPhoto)
+        )
+        && (
+          !('googlePhotosUrl' in request.resource.data)
+          || validGooglePhotosUrl(request.resource.data.googlePhotosUrl)
+        );
 
       allow read: if canReadJourney(journeyId);
       allow update: if canEditJourney(journeyId)
-        && request.resource.data.createdBy == resource.data.createdBy;
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'place',
+          'startDate',
+          'endDate',
+          'anchorPhoto',
+          'googlePhotosUrl',
+          'updatedAt'
+        ])
+        && (
+          !('anchorPhoto' in request.resource.data)
+          || validJourneyAnchorPhoto(request.resource.data.anchorPhoto)
+        )
+        && (
+          !('googlePhotosUrl' in request.resource.data)
+          || validGooglePhotosUrl(request.resource.data.googlePhotosUrl)
+        );
       allow delete: if signedIn()
         && resource.data.createdBy == request.auth.uid;
 

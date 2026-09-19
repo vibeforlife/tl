@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildEntryPhotoPath,
+  buildJourneyAnchorPhotoPath,
   validateImageFile,
 } from '../src/services/firebase/storage';
 
@@ -48,6 +49,44 @@ describe('Image validation', () => {
         makeFile('limit.jpg', 'image/jpeg', 20 * 1024 * 1024),
       ),
     ).toBeNull();
+  });
+});
+
+describe('Journey anchor photo Storage paths', () => {
+  it('creates the expected journey anchor path', () => {
+    const path = buildJourneyAnchorPhotoPath(
+      'journey-456',
+      'cover photo.jpg',
+    );
+
+    expect(path).toMatch(
+      /^journeys\/journey-456\/anchor\/[0-9a-f-]{36}-cover-photo\.jpg$/,
+    );
+  });
+
+  it('sanitizes unsafe anchor filename characters', () => {
+    const path = buildJourneyAnchorPhotoPath(
+      'journey-456',
+      'My cover photo (India)! #1.jpg',
+    );
+
+    expect(path).toMatch(
+      /^journeys\/journey-456\/anchor\/[0-9a-f-]{36}-My-cover-photo-India-1\.jpg$/,
+    );
+  });
+
+  it('generates different paths for repeated anchor uploads', () => {
+    const first = buildJourneyAnchorPhotoPath(
+      'journey-456',
+      'cover.jpg',
+    );
+
+    const second = buildJourneyAnchorPhotoPath(
+      'journey-456',
+      'cover.jpg',
+    );
+
+    expect(first).not.toBe(second);
   });
 });
 

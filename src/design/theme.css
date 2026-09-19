@@ -3004,12 +3004,35 @@ select:focus {
   z-index: 1;
   width: min(560px,100%);
   max-height: min(720px,calc(100vh - 48px));
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(64,199,189,.55) transparent;
   padding: 30px;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 24px;
   background: linear-gradient(145deg,rgba(14,33,47,.98),rgba(5,15,24,.98));
   box-shadow: 0 30px 100px rgba(0,0,0,.45);
+}
+
+.journey-modal__panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.journey-modal__panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.journey-modal__panel::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(64,199,189,.55);
+  background-clip: padding-box;
+}
+
+.journey-modal__panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(64,199,189,.78);
+  background-clip: padding-box;
 }
 
 .journey-modal__header {
@@ -4196,4 +4219,570 @@ select:focus {
 .entry-modal::-webkit-scrollbar-thumb:hover {
   background: rgba(64,199,189,.78);
   background-clip: padding-box;
+}
+
+/* Travel Lore full-bleed journey card styles */
+
+.journey-home:not(.journey-detail) .journey-card--has-photo {
+  min-height: 260px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  isolation: isolate;
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo::before {
+  display: none;
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo
+  .journey-card__photo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.04) 0%,
+      rgba(0, 0, 0, 0.08) 30%,
+      rgba(0, 0, 0, 0.40) 62%,
+      rgba(0, 0, 0, 0.84) 100%
+    );
+  transition: background 180ms ease;
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo
+  .journey-card__place {
+  margin-top: auto;
+  color: rgba(64, 199, 189, 0.95);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo
+  .journey-card__title {
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo
+  .journey-card__dates {
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo
+  .journey-card__open {
+  margin-top: 0;
+  color: #40c7bd;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo:hover
+  .journey-card__photo-overlay,
+.journey-home:not(.journey-detail) .journey-card--has-photo:focus-visible
+  .journey-card__photo-overlay {
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.12) 30%,
+      rgba(0, 0, 0, 0.44) 62%,
+      rgba(0, 0, 0, 0.86) 100%
+    );
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.journey-home:not(.journey-detail) .journey-card--has-photo:hover {
+  transform: translateY(-4px);
+}
+
+@media (max-width: 700px) {
+  .journey-home:not(.journey-detail) .journey-card--has-photo {
+    min-height: 230px;
+  }
+}
+
+
+/* Travel Lore edit journey anchor photo styles */
+
+.journey-modal__photo-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.journey-modal__photo-label {
+  display: block;
+  font-weight: 700;
+}
+
+.journey-modal__photo-help {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.journey-modal__photo-preview {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 10, 17, 0.5);
+}
+
+.journey-modal__photo-empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.58);
+  background: rgba(2, 10, 17, 0.35);
+  font-size: 0.86rem;
+}
+
+.journey-modal__photo-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.journey-modal__photo-file {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.journey-modal__photo-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.journey-modal__photo-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid rgba(64, 199, 189, 0.28);
+  border-radius: 999px;
+  color: rgba(64, 199, 189, 0.95);
+  background: rgba(64, 199, 189, 0.055);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.journey-modal__photo-file:hover .journey-modal__photo-file-button {
+  border-color: rgba(64, 199, 189, 0.55);
+  background: rgba(64, 199, 189, 0.1);
+  color: #40c7bd;
+  transform: translateY(-1px);
+}
+
+.journey-modal__photo-file:focus-within
+  .journey-modal__photo-file-button {
+  border-color: rgba(64, 199, 189, 0.8);
+  box-shadow: 0 0 0 3px rgba(64, 199, 189, 0.12);
+}
+
+.journey-modal__photo-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journey-modal__photo-remove {
+  position: relative;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.journey-modal__photo-remove > span {
+  display: inline-flex !important;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.journey-modal__photo-remove > span:last-child {
+  line-height: 20px;
+}
+
+.journey-modal__photo-remove input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.journey-modal__photo-checkbox {
+  position: relative;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid rgba(243, 240, 232, 0.38);
+  border-radius: 5px;
+  background: rgba(2, 10, 17, 0.72);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.journey-modal__photo-remove:hover
+  .journey-modal__photo-checkbox {
+  border-color: rgba(64, 199, 189, 0.75);
+}
+
+.journey-modal__photo-remove:has(input:focus-visible)
+  .journey-modal__photo-checkbox {
+  border-color: rgba(64, 199, 189, 0.9);
+  box-shadow: 0 0 0 3px rgba(64, 199, 189, 0.16);
+}
+
+.journey-modal__photo-remove:has(input:checked)
+  .journey-modal__photo-checkbox {
+  border-color: rgba(64, 199, 189, 0.9);
+  background: #40c7bd;
+}
+
+.journey-modal__photo-remove:has(input:checked)
+  .journey-modal__photo-checkbox::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #06151b;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.journey-modal__photo-remove:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Travel Lore journey detail hero anchor-photo styles */
+
+.journey-detail .journey-hero--has-photo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 320px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.journey-detail .journey-hero--has-photo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.08) 0%,
+      rgba(0, 0, 0, 0.16) 30%,
+      rgba(0, 0, 0, 0.58) 68%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+}
+
+.journey-detail .journey-hero--has-photo
+  .journey-hero__photo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.16) 58%,
+      rgba(0, 0, 0, 0.34) 100%
+    );
+}
+
+.journey-detail .journey-hero--has-photo .journey-hero__main,
+.journey-detail .journey-hero--has-photo .journey-detail__summary {
+  position: relative;
+  z-index: 1;
+}
+
+.journey-detail .journey-hero--has-photo .journey-hero__main {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+.journey-detail .journey-hero--has-photo .journey-card__place {
+  color: rgba(64, 199, 189, 0.98);
+}
+
+.journey-detail .journey-hero--has-photo h1 {
+  color: #fff;
+}
+
+.journey-detail .journey-hero--has-photo .journey-detail__dates {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+@media (max-width: 640px) {
+  .journey-modal__photo-picker {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .journey-modal__photo-file-button {
+    width: 100%;
+  }
+
+  .journey-modal__photo-file {
+    width: 100%;
+  }
+
+  .journey-detail .journey-hero--has-photo {
+    min-height: 280px;
+  }
+}
+
+
+/* Travel Lore journey home hero + polished file picker */
+
+.journey-home:not(.journey-detail) .journey-home__hero {
+  position: relative;
+  max-width: none;
+  min-height: 340px;
+  margin-bottom: 0;
+  padding: 72px 0 68px;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 0 0 28px 28px;
+  background: #03141e;
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(2, 10, 17, 0.98) 0%,
+      rgba(2, 10, 17, 0.91) 24%,
+      rgba(2, 10, 17, 0.62) 43%,
+      rgba(2, 10, 17, 0.26) 68%,
+      rgba(2, 10, 17, 0.08) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(2, 10, 17, 0.12) 0%,
+      transparent 48%,
+      rgba(2, 10, 17, 0.82) 100%
+    ),
+    url("/travel-lore-hero.jpg") center center / cover no-repeat;
+  opacity: 0.98;
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero > :not(.journey-home__hero-image) {
+  position: relative;
+  z-index: 2;
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 78% 18%,
+      rgba(64, 199, 189, 0.08),
+      transparent 30%
+    );
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 1px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(64, 199, 189, 0.42),
+      rgba(64, 199, 189, 0.12) 48%,
+      transparent 100%
+    );
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero h1 {
+  max-width: 760px;
+  margin: 14px 0 18px;
+  text-shadow: 0 3px 22px rgba(0, 0, 0, 0.48);
+}
+
+.journey-home:not(.journey-detail) .journey-home__hero .journey-empty-copy {
+  max-width: 620px;
+  margin-left: 0;
+  color: rgba(243, 240, 232, 0.68);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+
+/* Create Journey file picker */
+
+.journey-home:not(.journey-detail) .journey-form__photo-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.journey-home:not(.journey-detail) .journey-form__file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.journey-home:not(.journey-detail) .journey-form__file-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  margin: 0;
+  padding: 9px 15px;
+  border: 1px solid rgba(64, 199, 189, 0.38);
+  border-radius: 999px;
+  color: rgba(64, 199, 189, 0.95);
+  background: rgba(64, 199, 189, 0.055);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.journey-home:not(.journey-detail) .journey-form__file-button:hover {
+  border-color: rgba(64, 199, 189, 0.65);
+  background: rgba(64, 199, 189, 0.12);
+  color: #40c7bd;
+  transform: translateY(-1px);
+}
+
+.journey-home:not(.journey-detail)
+  .journey-form__file-input:focus-visible
+  + .journey-form__file-button {
+  border-color: rgba(64, 199, 189, 0.8);
+  box-shadow: 0 0 0 3px rgba(64, 199, 189, 0.12);
+}
+
+.journey-home:not(.journey-detail)
+  .journey-form__file-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.journey-home:not(.journey-detail) .journey-form__file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .journey-home:not(.journey-detail) .journey-home__hero {
+    min-height: 300px;
+    padding: 58px 0 56px;
+    border-radius: 0 0 22px 22px;
+  }
+
+  .journey-home:not(.journey-detail) .journey-home__hero-image {
+    background-position: 62% center;
+  }
+
+  .journey-home:not(.journey-detail) .journey-form__photo-picker {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .journey-home:not(.journey-detail) .journey-form__file-button {
+    width: 100%;
+  }
+
+  .journey-home:not(.journey-detail) .journey-form__file-name {
+    width: 100%;
+  }
 }

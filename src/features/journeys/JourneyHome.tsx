@@ -63,6 +63,11 @@ export function JourneyHome({
       <div className="journey-home__atmosphere" aria-hidden="true" />
 
       <section className="journey-home__hero">
+        <div
+          className="journey-home__hero-image"
+          aria-hidden="true"
+        />
+
         <p className="eyebrow">YOUR JOURNEYS</p>
         <h1>Every place has a story.</h1>
         <p className="journey-empty-copy">
@@ -104,11 +109,30 @@ export function JourneyHome({
           <section className="journey-grid" aria-label="Your journeys">
             {journeys.map((journey) => (
               <button
-                className="journey-card journey-card--button"
+                className={[
+                  'journey-card',
+                  'journey-card--button',
+                  journey.anchorPhoto ? 'journey-card--has-photo' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 key={journey.id}
                 type="button"
                 onClick={() => setSelectedJourneyId(journey.id)}
+                style={
+                  journey.anchorPhoto
+                    ? {
+                        backgroundImage: `url("${journey.anchorPhoto.url}")`,
+                      }
+                    : undefined
+                }
               >
+                {journey.anchorPhoto ? (
+                  <span
+                    className="journey-card__photo-overlay"
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <span className="journey-card__place">{journey.place}</span>
                 <span className="journey-card__title">{journey.name}</span>
                 <span className="journey-card__dates">

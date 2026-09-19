@@ -25,6 +25,15 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)');
     }
 
+    match /journeys/{journeyId}/anchor/{fileName} {
+      allow read: if journeyMember(journeyId);
+
+      allow create, update: if canEditJourney(journeyId)
+        && validImageUpload();
+
+      allow delete: if canEditJourney(journeyId);
+    }
+
     match /journeys/{journeyId}/entries/{entryId}/{userId}/{fileName} {
       allow read: if journeyMember(journeyId);
 

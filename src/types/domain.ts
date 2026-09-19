@@ -3,12 +3,19 @@ import type { Timestamp } from 'firebase/firestore';
 export type JourneyRole = 'owner' | 'editor' | 'viewer';
 export type InvitationRole = Exclude<JourneyRole, 'owner'>;
 
+export interface JourneyPhoto {
+  url: string;
+  storagePath: string;
+}
+
 export interface Journey {
   id: string;
   name: string;
   place: string;
   startDate: string;
   endDate: string;
+  anchorPhoto?: JourneyPhoto;
+  googlePhotosUrl?: string;
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;

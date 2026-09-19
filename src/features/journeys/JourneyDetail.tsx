@@ -1,3 +1,4 @@
+import type { ChangeEvent } from 'react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
@@ -13,12 +14,15 @@ import type {
 } from '../../types/domain';
 import { deleteEntry, listJourneyEntries } from '../../services/firebase/entries';
 import {
+  clearJourneyAnchorPhoto,
   deleteJourney,
   getJourneyMember,
   updateJourney,
+  updateJourneyAnchorPhoto,
   type CreateJourneyInput,
 } from '../../services/firebase/journeys';
 import { createJourneyShareLink } from '../../services/firebase/sharing';
+import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/firebase/storage';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
@@ -108,7 +112,25 @@ export function JourneyDetail({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editInput, setEditInput] = useState<CreateJourneyInput | null>(null);
+  const [editAnchorPhoto, setEditAnchorPhoto] = useState<File | null>(null);
+  const [removeAnchorPhoto, setRemoveAnchorPhoto] = useState(false);
+  const [editAnchorPhotoPreviewUrl, setEditAnchorPhotoPreviewUrl] =
+    useState<string | null>(null);
   const [isSavingJourney, setIsSavingJourney] = useState(false);
+  useEffect(() => {
+    if (!editAnchorPhoto) {
+      setEditAnchorPhotoPreviewUrl(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(editAnchorPhoto);
+    setEditAnchorPhotoPreviewUrl(previewUrl);
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [editAnchorPhoto]);
+
   const [isDeletingJourney, setIsDeletingJourney] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [managementError, setManagementError] = useState<string | null>(null);
@@ -164,6 +186,14 @@ export function JourneyDetail({
         createdBy: data.createdBy as string,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
+        ...(data.anchorPhoto
+          ? {
+              anchorPhoto: {
+                url: data.anchorPhoto.url as string,
+                storagePath: data.anchorPhoto.storagePath as string,
+              },
+            }
+          : {}),
       });
 
       setJourneyRole(member.role);
@@ -353,6 +383,8 @@ export function JourneyDetail({
 
     setIsDeleteOpen(false);
     setManagementError(null);
+    setEditAnchorPhoto(null);
+    setRemoveAnchorPhoto(false);
     setEditInput({
       name: journey.name,
       place: journey.place,
@@ -362,14 +394,80 @@ export function JourneyDetail({
     setIsEditOpen(true);
   };
 
+  const handleEditAnchorPhotoChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+
+    setEditAnchorPhoto(file);
+
+    if (file) {
+      setRemoveAnchorPhoto(false);
+    }
+  };
+
   const handleSaveJourney = async () => {
     if (!journey || !editInput) return;
 
     setIsSavingJourney(true);
     setManagementError(null);
 
+    const previousAnchorPhoto = journey.anchorPhoto;
+    let nextAnchorPhoto = previousAnchorPhoto;
+    let photoCleanupWarning: string | null = null;
+
     try {
       await updateJourney(journey.id, editInput);
+
+      if (editAnchorPhoto) {
+        const uploadedPhoto = await uploadJourneyAnchorPhoto(
+          journey.id,
+          editAnchorPhoto,
+        );
+
+        try {
+          await updateJourneyAnchorPhoto(journey.id, {
+            url: uploadedPhoto.url,
+            storagePath: uploadedPhoto.path,
+          });
+        } catch (photoMetadataError) {
+          try {
+            await deleteStorageFile(uploadedPhoto.path);
+          } catch {
+            // Best-effort cleanup. The old photo remains the active photo.
+          }
+
+          throw photoMetadataError;
+        }
+
+        nextAnchorPhoto = {
+          url: uploadedPhoto.url,
+          storagePath: uploadedPhoto.path,
+        };
+
+        if (
+          previousAnchorPhoto &&
+          previousAnchorPhoto.storagePath !== uploadedPhoto.path
+        ) {
+          try {
+            await deleteStorageFile(previousAnchorPhoto.storagePath);
+          } catch {
+            photoCleanupWarning =
+              'Journey saved, but the previous anchor photo could not be removed from storage.';
+          }
+        }
+      } else if (removeAnchorPhoto && previousAnchorPhoto) {
+        await clearJourneyAnchorPhoto(journey.id);
+        nextAnchorPhoto = undefined;
+
+        try {
+          await deleteStorageFile(previousAnchorPhoto.storagePath);
+        } catch {
+          photoCleanupWarning =
+            'Journey saved without an anchor photo, but the previous photo could not be removed from storage.';
+        }
+      }
+
       setJourney((current) =>
         current
           ? {
@@ -378,10 +476,18 @@ export function JourneyDetail({
               place: editInput.place.trim(),
               startDate: editInput.startDate,
               endDate: editInput.endDate,
+              ...(nextAnchorPhoto
+                ? { anchorPhoto: nextAnchorPhoto }
+                : { anchorPhoto: undefined }),
             }
           : current,
       );
+
       setIsEditOpen(false);
+
+      if (photoCleanupWarning) {
+        setManagementError(photoCleanupWarning);
+      }
     } catch (saveError) {
       setManagementError(
         saveError instanceof Error
@@ -513,7 +619,23 @@ export function JourneyDetail({
         ← Your journeys
       </button>
 
-      <section className="journey-hero">
+      <section
+        className={`journey-hero${journey.anchorPhoto ? ' journey-hero--has-photo' : ''}`}
+        style={
+          journey.anchorPhoto
+            ? {
+                backgroundImage: `url("${journey.anchorPhoto.url}")`,
+              }
+            : undefined
+        }
+      >
+        {journey.anchorPhoto ? (
+          <span
+            className="journey-hero__photo-overlay"
+            aria-hidden="true"
+          />
+        ) : null}
+
         <div className="journey-hero__main">
           <p className="journey-card__place">{journey.place}</p>
           <h1>{journey.name}</h1>
@@ -1421,6 +1543,89 @@ export function JourneyDetail({
                   />
                 </label>
               </div>
+              <section className="journey-modal__photo-section">
+                <div>
+                  <span className="journey-modal__photo-label">
+                    Anchor photo
+                  </span>
+
+                  <p className="journey-modal__photo-help">
+                    This photo represents the journey on your journey card.
+                  </p>
+                </div>
+
+                {editAnchorPhotoPreviewUrl ? (
+                  <img
+                    className="journey-modal__photo-preview"
+                    src={editAnchorPhotoPreviewUrl}
+                    alt="New anchor photo preview"
+                  />
+                ) : journey.anchorPhoto && !removeAnchorPhoto ? (
+                  <img
+                    className="journey-modal__photo-preview"
+                    src={journey.anchorPhoto.url}
+                    alt="Current anchor photo"
+                  />
+                ) : (
+                  <p className="journey-modal__photo-empty">
+                    {removeAnchorPhoto
+                      ? 'The current anchor photo will be removed.'
+                      : 'No anchor photo selected.'}
+                  </p>
+                )}
+
+                <div className="journey-modal__photo-picker">
+                  <label className="journey-modal__photo-file">
+                    <span className="journey-modal__photo-file-button">
+                      {journey.anchorPhoto
+                        ? 'Choose a different photo'
+                        : 'Choose a photo'}
+                    </span>
+
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                      onChange={handleEditAnchorPhotoChange}
+                      disabled={isSavingJourney}
+                    />
+                  </label>
+
+                  <span className="journey-modal__photo-file-name">
+                    {editAnchorPhoto
+                      ? editAnchorPhoto.name
+                      : removeAnchorPhoto
+                        ? 'Photo will be removed'
+                        : journey.anchorPhoto
+                          ? 'Current photo'
+                          : 'No photo selected'}
+                  </span>
+                </div>
+
+                {journey.anchorPhoto && (
+                  <label className="journey-modal__photo-remove">
+                    <input
+                      type="checkbox"
+                      checked={removeAnchorPhoto}
+                      onChange={(event) => {
+                        setRemoveAnchorPhoto(event.target.checked);
+
+                        if (event.target.checked) {
+                          setEditAnchorPhoto(null);
+                        }
+                      }}
+                      disabled={isSavingJourney}
+                    />
+
+                    <span
+                      className="journey-modal__photo-checkbox"
+                      aria-hidden="true"
+                    />
+
+                    <span>Remove anchor photo</span>
+                  </label>
+                )}
+              </section>
+
             </div>
 
             {managementError && (

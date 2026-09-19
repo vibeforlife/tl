@@ -1,4 +1,5 @@
 import {
+  deleteField,
   collection,
   deleteDoc,
   doc,
@@ -13,7 +14,12 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 import { db } from './firestore';
-import type { Journey, JourneyMember, JourneyRole } from '../../types/domain';
+import type {
+  Journey,
+  JourneyMember,
+  JourneyPhoto,
+  JourneyRole,
+} from '../../types/domain';
 
 export type CreateJourneyInput = {
   name: string;
@@ -39,6 +45,17 @@ const mapJourney = (id: string, data: DocumentData): Journey => ({
   place: data.place as string,
   startDate: data.startDate as string,
   endDate: data.endDate as string,
+  ...(data.anchorPhoto
+    ? {
+        anchorPhoto: {
+          url: data.anchorPhoto.url as string,
+          storagePath: data.anchorPhoto.storagePath as string,
+        },
+      }
+    : {}),
+  ...(data.googlePhotosUrl
+    ? { googlePhotosUrl: data.googlePhotosUrl as string }
+    : {}),
   createdBy: data.createdBy as string,
   createdAt: data.createdAt as Timestamp,
   updatedAt: data.updatedAt as Timestamp,
@@ -82,6 +99,25 @@ export const createJourney = async (
 
   await batch.commit();
   return journeyRef.id;
+};
+
+export const updateJourneyAnchorPhoto = async (
+  journeyId: string,
+  anchorPhoto: JourneyPhoto,
+): Promise<void> => {
+  await updateDoc(doc(db, 'journeys', journeyId), {
+    anchorPhoto,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const clearJourneyAnchorPhoto = async (
+  journeyId: string,
+): Promise<void> => {
+  await updateDoc(doc(db, 'journeys', journeyId), {
+    anchorPhoto: deleteField(),
+    updatedAt: serverTimestamp(),
+  });
 };
 
 export const listMyJourneys = async (userId: string): Promise<Journey[]> => {

@@ -38,6 +38,21 @@ export const validateImageFile = (file: File): string | null => {
   return null;
 };
 
+export const buildJourneyAnchorPhotoPath = (
+  journeyId: string,
+  fileName: string,
+): string => {
+  const safeFileName = fileName
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  const finalFileName = safeFileName || 'anchor-photo';
+
+  return `journeys/${journeyId}/anchor/${crypto.randomUUID()}-${finalFileName}`;
+};
+
 export const buildEntryPhotoPath = (
   userId: string,
   journeyId: string,
@@ -53,6 +68,37 @@ export const buildEntryPhotoPath = (
   const finalFileName = safeFileName || 'photo';
 
   return `journeys/${journeyId}/entries/${entryId}/${userId}/${crypto.randomUUID()}-${finalFileName}`;
+};
+
+export const uploadJourneyAnchorPhoto = async (
+  journeyId: string,
+  file: File,
+): Promise<{ path: string; url: string }> => {
+  const validationError = validateImageFile(file);
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const path = buildJourneyAnchorPhotoPath(journeyId, file.name);
+
+  const metadata: UploadMetadata = {
+    contentType: file.type,
+  };
+
+  const photoRef = ref(storage, path);
+  const uploadResult: UploadResult = await uploadBytes(
+    photoRef,
+    file,
+    metadata,
+  );
+
+  const url = await getDownloadURL(uploadResult.ref);
+
+  return {
+    path,
+    url,
+  };
 };
 
 export const uploadEntryPhoto = async (

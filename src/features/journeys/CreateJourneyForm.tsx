@@ -1,14 +1,29 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import type { User } from 'firebase/auth';
-import { createJourney, validateJourneyInput, type CreateJourneyInput } from '../../services/firebase/journeys';
+import {
+  createJourney,
+  updateJourneyAnchorPhoto,
+  validateJourneyInput,
+  type CreateJourneyInput,
+} from '../../services/firebase/journeys';
+import {
+  deleteStorageFile,
+  uploadJourneyAnchorPhoto,
+} from '../../services/firebase/storage';
 
 export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: () => Promise<void> | void }) {
   const [form, setForm] = useState<CreateJourneyInput>({ name: '', place: '', startDate: '', endDate: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [anchorPhoto, setAnchorPhoto] = useState<File | null>(null);
 
   const update = (field: keyof CreateJourneyInput, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setError(null);
+  };
+
+  const handleAnchorPhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setAnchorPhoto(event.target.files?.[0] ?? null);
     setError(null);
   };
 
@@ -25,11 +40,52 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
     setIsSubmitting(true);
     setError(null);
     try {
-      await createJourney(user, form);
+      const journeyId = await createJourney(user, form);
+
+      let photoError: string | null = null;
+
+      if (anchorPhoto) {
+        try {
+          const uploadedPhoto = await uploadJourneyAnchorPhoto(
+            journeyId,
+            anchorPhoto,
+          );
+
+          try {
+            await updateJourneyAnchorPhoto(journeyId, {
+              url: uploadedPhoto.url,
+              storagePath: uploadedPhoto.path,
+            });
+          } catch (metadataError) {
+            try {
+              await deleteStorageFile(uploadedPhoto.path);
+            } catch {
+              // The Journey remains intact even if cleanup fails.
+            }
+
+            throw metadataError;
+          }
+        } catch (photoUploadError) {
+          photoError =
+            photoUploadError instanceof Error
+              ? `Journey created, but the anchor photo could not be uploaded: ${photoUploadError.message}`
+              : 'Journey created, but the anchor photo could not be uploaded. You can add it later.';
+        }
+      }
+
       setForm({ name: '', place: '', startDate: '', endDate: '' });
+      setAnchorPhoto(null);
       await onCreated();
+
+      if (photoError) {
+        setError(photoError);
+      }
     } catch (journeyError) {
-      setError(journeyError instanceof Error ? journeyError.message : 'We could not create that journey. Please try again.');
+      setError(
+        journeyError instanceof Error
+          ? journeyError.message
+          : 'We could not create that journey. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -94,6 +150,42 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
               required
               disabled={isSubmitting}
             />
+          </div>
+        </div>
+
+        <div className="journey-form__field">
+          <label htmlFor="journey-anchor-photo">
+            Anchor photo (optional)
+          </label>
+
+          <div className="journey-form__photo-picker">
+            <input
+              className="journey-form__file-input"
+              id="journey-anchor-photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              onChange={handleAnchorPhotoChange}
+              disabled={isSubmitting}
+            />
+
+            <label
+              className={[
+                'journey-form__file-button',
+                isSubmitting ? 'journey-form__file-button--disabled' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              htmlFor="journey-anchor-photo"
+            >
+              Choose file
+            </label>
+
+            <span
+              className="journey-form__file-name"
+              title={anchorPhoto?.name ?? 'No file chosen'}
+            >
+              {anchorPhoto?.name ?? 'No file chosen'}
+            </span>
           </div>
         </div>
 

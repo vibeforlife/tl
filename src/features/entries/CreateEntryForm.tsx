@@ -161,16 +161,34 @@ export function CreateEntryForm({
   const isEditing = Boolean(entry);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!pendingPhotoFile) {
       setPendingPhotoPreviewUrl(null);
       return;
     }
 
-    const previewUrl = URL.createObjectURL(pendingPhotoFile);
-    setPendingPhotoPreviewUrl(previewUrl);
+    setPendingPhotoPreviewUrl(null);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (!cancelled && typeof reader.result === 'string') {
+        setPendingPhotoPreviewUrl(reader.result);
+      }
+    };
+
+    reader.onerror = () => {
+      if (!cancelled) {
+        setPendingPhotoPreviewUrl(null);
+      }
+    };
+
+    reader.readAsDataURL(pendingPhotoFile);
 
     return () => {
-      URL.revokeObjectURL(previewUrl);
+      cancelled = true;
+      reader.abort();
     };
   }, [pendingPhotoFile]);
 

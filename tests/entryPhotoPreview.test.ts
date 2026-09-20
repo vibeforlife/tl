@@ -3,31 +3,50 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const source = readFileSync(
-  resolve(process.cwd(), 'src/features/entries/CreateEntryForm.tsx'),
+  resolve(
+    process.cwd(),
+    'src/features/entries/CreateEntryForm.tsx',
+  ),
   'utf8',
 );
 
-describe('Memory photo mobile preview', () => {
-  it('uses FileReader data URLs for selected photo previews', () => {
-    expect(source).toContain('const reader = new FileReader();');
-    expect(source).toContain('reader.readAsDataURL(pendingPhotoFile);');
+describe('Memory photo preparation and preview', () => {
+  it('optimizes selected photos before preview and upload', () => {
     expect(source).toContain(
-      "typeof reader.result === 'string'",
+      'await optimizeImageFile(file)',
+    );
+    expect(source).toContain(
+      'setPendingPhotoFile(optimizedFile)',
+    );
+    expect(source).toContain(
+      "setPhotoProcessingState('processing')",
+    );
+    expect(source).toContain(
+      "setPhotoProcessingState('ready')",
     );
   });
 
-  it('does not use object URLs for memory photo previews', () => {
+  it('does not use FileReader data URLs', () => {
     expect(source).not.toContain(
-      'URL.createObjectURL(pendingPhotoFile)',
+      'new FileReader()',
     );
     expect(source).not.toContain(
-      'URL.revokeObjectURL(previewUrl)',
+      'reader.readAsDataURL',
     );
   });
 
-  it('cancels the previous FileReader when the selected photo changes', () => {
-    expect(source).toContain('let cancelled = false;');
-    expect(source).toContain('cancelled = true;');
-    expect(source).toContain('reader.abort();');
+  it('does not allow saving while a photo is being prepared', () => {
+    expect(source).toContain(
+      "photoProcessingState === 'processing'",
+    );
+    expect(source).toContain(
+      'Preparing photo…',
+    );
+  });
+
+  it('reports resumable upload progress', () => {
+    expect(source).toContain(
+      'setPhotoUploadProgress(progress)',
+    );
   });
 });

@@ -13,6 +13,7 @@ import {
   uploadEntryPhoto,
   validateImageFile,
 } from '../../services/firebase/storage';
+import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import type {
   Entry,
   EntryCost,
@@ -145,6 +146,9 @@ export function CreateEntryForm({
   const [tagsText, setTagsText] = useState('');
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [pendingPhotoPreviewUrl, setPendingPhotoPreviewUrl] = useState<string | null>(null);
+  const [photoProcessingState, setPhotoProcessingState] =
+    useState<'idle' | 'processing' | 'ready'>('idle');
+  const [photoUploadProgress, setPhotoUploadProgress] = useState<number | null>(null);
   const [photoCaption, setPhotoCaption] = useState('');
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [manualLocation, setManualLocation] = useState({
@@ -161,34 +165,18 @@ export function CreateEntryForm({
   const isEditing = Boolean(entry);
 
   useEffect(() => {
-    let cancelled = false;
-
     if (!pendingPhotoFile) {
       setPendingPhotoPreviewUrl(null);
       return;
     }
 
-    setPendingPhotoPreviewUrl(null);
+    const previewUrl =
+      URL.createObjectURL(pendingPhotoFile);
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (!cancelled && typeof reader.result === 'string') {
-        setPendingPhotoPreviewUrl(reader.result);
-      }
-    };
-
-    reader.onerror = () => {
-      if (!cancelled) {
-        setPendingPhotoPreviewUrl(null);
-      }
-    };
-
-    reader.readAsDataURL(pendingPhotoFile);
+    setPendingPhotoPreviewUrl(previewUrl);
 
     return () => {
-      cancelled = true;
-      reader.abort();
+      URL.revokeObjectURL(previewUrl);
     };
   }, [pendingPhotoFile]);
 
@@ -220,6 +208,8 @@ export function CreateEntryForm({
     setPeopleText(entry.people.join(', '));
     setTagsText(entry.tags.join(', '));
     setPendingPhotoFile(null);
+    setPhotoProcessingState('idle');
+    setPhotoUploadProgress(null);
     setPhotoCaption(entry.photo?.caption ?? '');
     setRemoveExistingPhoto(false);
 
@@ -347,6 +337,7 @@ export function CreateEntryForm({
             journeyId,
             entry.id,
             pendingPhotoFile,
+            (progress) => setPhotoUploadProgress(progress),
           );
 
           uploadedPhoto = {
@@ -415,6 +406,7 @@ export function CreateEntryForm({
               journeyId,
               entryId,
               pendingPhotoFile,
+              (progress) => setPhotoUploadProgress(progress),
             );
 
             uploadedPhoto = {
@@ -465,6 +457,8 @@ export function CreateEntryForm({
         setPeopleText('');
         setTagsText('');
         setPendingPhotoFile(null);
+        setPhotoProcessingState('idle');
+        setPhotoUploadProgress(null);
         setPhotoCaption('');
         setRemoveExistingPhoto(false);
         setManualLocation({
@@ -504,22 +498,44 @@ export function CreateEntryForm({
     }));
   };
 
-  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0] ?? null;
     event.target.value = '';
 
     if (!file) return;
 
-    const validationError = validateImageFile(file);
+    const validationError =
+      validateImageFile(file);
 
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    setPendingPhotoFile(file);
+    setPendingPhotoFile(null);
+    setPendingPhotoPreviewUrl(null);
+    setPhotoProcessingState('processing');
+    setPhotoUploadProgress(null);
     setRemoveExistingPhoto(false);
     setError(null);
+
+    try {
+      const optimizedFile =
+        await optimizeImageFile(file);
+
+      setPendingPhotoFile(optimizedFile);
+      setPhotoProcessingState('ready');
+    } catch (photoError) {
+      setPhotoProcessingState('idle');
+
+      setError(
+        photoError instanceof Error
+          ? photoError.message
+          : 'We could not prepare that photo for upload.',
+      );
+    }
   };
 
   return (
@@ -915,7 +931,7 @@ export function CreateEntryForm({
                   alt="Selected anchor photo preview"
                 />
               ) : (
-                <div className="photo-preview__fallback">Photo selected</div>
+                <div className="photo-preview__fallback">Preparing photo…</div>
               )}
             </div>
             <div className="photo-preview__details">
@@ -926,6 +942,8 @@ export function CreateEntryForm({
                 className="photo-remove-button"
                 onClick={() => {
                   setPendingPhotoFile(null);
+                  setPhotoProcessingState('idle');
+                  setPhotoUploadProgress(null);
                   setError(null);
                 }}
                 disabled={isSubmitting}
@@ -983,7 +1001,7 @@ export function CreateEntryForm({
             {pendingPhotoFile || entry?.photo ? 'Choose a different photo' : 'Upload anchor photo'}
           </label>
           <span className="field-hint">
-            JPEG, PNG, WebP, HEIC, or HEIF. Maximum 20 MB; large photos are optimized before upload.
+            JPEG, PNG, WebP, HEIC, or HEIF. Photos are resized to a maximum 2560px dimension and optimized to about 3 MB before upload.
           </span>
         </div>
       </div>
@@ -996,11 +1014,24 @@ export function CreateEntryForm({
         </p>
       )}
 
-      <button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting
-          ? 'Saving memory…'
-          : isEditing
-            ? 'Save Changes'
-            : 'Save Memory'}</button>
+      <button
+        className="primary-button"
+        type="submit"
+        disabled={
+          isSubmitting ||
+          photoProcessingState === 'processing'
+        }
+      >
+        {isSubmitting
+          ? photoUploadProgress !== null
+            ? `Uploading photo ${photoUploadProgress}%`
+            : 'Saving memory…'
+          : photoProcessingState === 'processing'
+            ? 'Preparing photo…'
+            : isEditing
+              ? 'Save Changes'
+              : 'Save Memory'}
+      </button>
     </form>
   );
 }

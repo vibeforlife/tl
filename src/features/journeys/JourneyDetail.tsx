@@ -23,6 +23,7 @@ import {
 } from '../../services/firebase/journeys';
 import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/firebase/storage';
+import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
@@ -116,6 +117,7 @@ export function JourneyDetail({
   const [removeAnchorPhoto, setRemoveAnchorPhoto] = useState(false);
   const [editAnchorPhotoPreviewUrl, setEditAnchorPhotoPreviewUrl] =
     useState<string | null>(null);
+  const [isPreparingAnchorPhoto, setIsPreparingAnchorPhoto] = useState(false);
   const [isSavingJourney, setIsSavingJourney] = useState(false);
   useEffect(() => {
     if (!editAnchorPhoto) {
@@ -394,15 +396,33 @@ export function JourneyDetail({
     setIsEditOpen(true);
   };
 
-  const handleEditAnchorPhotoChange = (
+  const handleEditAnchorPhotoChange = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
 
-    setEditAnchorPhoto(file);
+    if (!file) return;
 
-    if (file) {
+    setIsPreparingAnchorPhoto(true);
+    setManagementError(null);
+
+    try {
+      const optimizedFile =
+        await optimizeImageFile(file);
+
+      setEditAnchorPhoto(optimizedFile);
       setRemoveAnchorPhoto(false);
+    } catch (photoError) {
+      setEditAnchorPhoto(null);
+
+      setManagementError(
+        photoError instanceof Error
+          ? photoError.message
+          : 'We could not prepare that photo for upload.',
+      );
+    } finally {
+      setIsPreparingAnchorPhoto(false);
     }
   };
 
@@ -1590,6 +1610,12 @@ export function JourneyDetail({
                     />
                   </label>
 
+                  {isPreparingAnchorPhoto && (
+                    <span className="journey-modal__photo-file-name">
+                      Preparing photo…
+                    </span>
+                  )}
+
                   <span className="journey-modal__photo-file-name">
                     {editAnchorPhoto
                       ? editAnchorPhoto.name
@@ -1648,9 +1674,16 @@ export function JourneyDetail({
                 className="primary-button"
                 type="button"
                 onClick={() => void handleSaveJourney()}
-                disabled={isSavingJourney}
+                disabled={
+                  isSavingJourney ||
+                  isPreparingAnchorPhoto
+                }
               >
-                {isSavingJourney ? 'Saving…' : 'Save changes'}
+                {isSavingJourney
+                  ? 'Saving…'
+                  : isPreparingAnchorPhoto
+                    ? 'Preparing photo…'
+                    : 'Save changes'}
               </button>
             </div>
           </div>

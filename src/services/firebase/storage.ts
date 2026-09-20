@@ -3,7 +3,7 @@ import {
   getDownloadURL,
   getStorage,
   ref,
-  uploadBytes,
+  uploadBytesResumable,
   type UploadMetadata,
   type UploadResult,
 } from 'firebase/storage';
@@ -22,7 +22,13 @@ const allowedImageTypes = new Set([
 
 const maxImageSizeBytes = 20 * 1024 * 1024;
 
-export const validateImageFile = (file: File): string | null => {
+export type PhotoUploadProgressHandler = (
+  progress: number,
+) => void;
+
+export const validateImageFile = (
+  file: File,
+): string | null => {
   if (!allowedImageTypes.has(file.type.toLowerCase())) {
     return 'Please choose a JPEG, PNG, WebP, HEIC, or HEIF image.';
   }
@@ -48,7 +54,8 @@ export const buildJourneyAnchorPhotoPath = (
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  const finalFileName = safeFileName || 'anchor-photo';
+  const finalFileName =
+    safeFileName || 'anchor-photo';
 
   return `journeys/${journeyId}/anchor/${crypto.randomUUID()}-${finalFileName}`;
 };
@@ -65,35 +72,74 @@ export const buildEntryPhotoPath = (
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  const finalFileName = safeFileName || 'photo';
+  const finalFileName =
+    safeFileName || 'photo';
 
   return `journeys/${journeyId}/entries/${entryId}/${userId}/${crypto.randomUUID()}-${finalFileName}`;
 };
 
+const uploadFileWithProgress = (
+  path: string,
+  file: File,
+  onProgress?: PhotoUploadProgressHandler,
+): Promise<UploadResult> =>
+  new Promise((resolve, reject) => {
+    const metadata: UploadMetadata = {
+      contentType: file.type,
+    };
+
+    const photoRef = ref(storage, path);
+
+    const uploadTask = uploadBytesResumable(
+      photoRef,
+      file,
+      metadata,
+    );
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          snapshot.totalBytes > 0
+            ? (snapshot.bytesTransferred /
+                snapshot.totalBytes) *
+              100
+            : 0;
+
+        onProgress?.(Math.round(progress));
+      },
+      reject,
+      () => resolve(uploadTask.snapshot),
+    );
+  });
+
 export const uploadJourneyAnchorPhoto = async (
   journeyId: string,
   file: File,
+  onProgress?: PhotoUploadProgressHandler,
 ): Promise<{ path: string; url: string }> => {
-  const validationError = validateImageFile(file);
+  const validationError =
+    validateImageFile(file);
 
   if (validationError) {
     throw new Error(validationError);
   }
 
-  const path = buildJourneyAnchorPhotoPath(journeyId, file.name);
-
-  const metadata: UploadMetadata = {
-    contentType: file.type,
-  };
-
-  const photoRef = ref(storage, path);
-  const uploadResult: UploadResult = await uploadBytes(
-    photoRef,
-    file,
-    metadata,
+  const path = buildJourneyAnchorPhotoPath(
+    journeyId,
+    file.name,
   );
 
-  const url = await getDownloadURL(uploadResult.ref);
+  const uploadResult =
+    await uploadFileWithProgress(
+      path,
+      file,
+      onProgress,
+    );
+
+  const url = await getDownloadURL(
+    uploadResult.ref,
+  );
 
   return {
     path,
@@ -106,8 +152,10 @@ export const uploadEntryPhoto = async (
   journeyId: string,
   entryId: string,
   file: File,
+  onProgress?: PhotoUploadProgressHandler,
 ): Promise<{ path: string; url: string }> => {
-  const validationError = validateImageFile(file);
+  const validationError =
+    validateImageFile(file);
 
   if (validationError) {
     throw new Error(validationError);
@@ -120,18 +168,16 @@ export const uploadEntryPhoto = async (
     file.name,
   );
 
-  const metadata: UploadMetadata = {
-    contentType: file.type,
-  };
+  const uploadResult =
+    await uploadFileWithProgress(
+      path,
+      file,
+      onProgress,
+    );
 
-  const photoRef = ref(storage, path);
-  const uploadResult: UploadResult = await uploadBytes(
-    photoRef,
-    file,
-    metadata,
+  const url = await getDownloadURL(
+    uploadResult.ref,
   );
-
-  const url = await getDownloadURL(uploadResult.ref);
 
   return {
     path,
@@ -139,6 +185,8 @@ export const uploadEntryPhoto = async (
   };
 };
 
-export const deleteStorageFile = async (path: string): Promise<void> => {
+export const deleteStorageFile = async (
+  path: string,
+): Promise<void> => {
   await deleteObject(ref(storage, path));
 };

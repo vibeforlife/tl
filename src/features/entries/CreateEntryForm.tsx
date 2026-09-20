@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
 import {
@@ -149,6 +149,7 @@ export function CreateEntryForm({
   const [photoProcessingState, setPhotoProcessingState] =
     useState<'idle' | 'processing' | 'ready'>('idle');
   const [photoUploadProgress, setPhotoUploadProgress] = useState<number | null>(null);
+  const photoSelectionGenerationRef = useRef(0);
   const [photoCaption, setPhotoCaption] = useState('');
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [manualLocation, setManualLocation] = useState({
@@ -514,6 +515,10 @@ export function CreateEntryForm({
       return;
     }
 
+    const generation =
+      photoSelectionGenerationRef.current + 1;
+    photoSelectionGenerationRef.current = generation;
+
     setPendingPhotoFile(null);
     setPendingPhotoPreviewUrl(null);
     setPhotoProcessingState('processing');
@@ -525,9 +530,23 @@ export function CreateEntryForm({
       const optimizedFile =
         await optimizeImageFile(file);
 
+      if (
+        photoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
       setPendingPhotoFile(optimizedFile);
       setPhotoProcessingState('ready');
     } catch (photoError) {
+      if (
+        photoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
       setPhotoProcessingState('idle');
 
       setError(
@@ -941,6 +960,7 @@ export function CreateEntryForm({
                 type="button"
                 className="photo-remove-button"
                 onClick={() => {
+                  photoSelectionGenerationRef.current += 1;
                   setPendingPhotoFile(null);
                   setPhotoProcessingState('idle');
                   setPhotoUploadProgress(null);

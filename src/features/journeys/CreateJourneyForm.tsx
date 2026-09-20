@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { User } from 'firebase/auth';
 import {
   createJourney,
@@ -10,21 +10,74 @@ import {
   deleteStorageFile,
   uploadJourneyAnchorPhoto,
 } from '../../services/firebase/storage';
+import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 
 export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: () => Promise<void> | void }) {
   const [form, setForm] = useState<CreateJourneyInput>({ name: '', place: '', startDate: '', endDate: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [anchorPhoto, setAnchorPhoto] = useState<File | null>(null);
+  const [isPreparingAnchorPhoto, setIsPreparingAnchorPhoto] = useState(false);
+  const [anchorPhotoUploadProgress, setAnchorPhotoUploadProgress] =
+    useState<number | null>(null);
+  const anchorPhotoSelectionGenerationRef = useRef(0);
 
   const update = (field: keyof CreateJourneyInput, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
     setError(null);
   };
 
-  const handleAnchorPhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setAnchorPhoto(event.target.files?.[0] ?? null);
+  const handleAnchorPhotoChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+
+    if (!file) return;
+
+    const generation =
+      anchorPhotoSelectionGenerationRef.current + 1;
+    anchorPhotoSelectionGenerationRef.current = generation;
+
+    setAnchorPhoto(null);
+    setIsPreparingAnchorPhoto(true);
+    setAnchorPhotoUploadProgress(null);
     setError(null);
+
+    try {
+      const optimizedFile =
+        await optimizeImageFile(file);
+
+      if (
+        anchorPhotoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
+      setAnchorPhoto(optimizedFile);
+    } catch (photoError) {
+      if (
+        anchorPhotoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
+      setAnchorPhoto(null);
+      setError(
+        photoError instanceof Error
+          ? photoError.message
+          : 'We could not prepare that photo for upload.',
+      );
+    } finally {
+      if (
+        anchorPhotoSelectionGenerationRef.current ===
+        generation
+      ) {
+        setIsPreparingAnchorPhoto(false);
+      }
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -38,6 +91,7 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
     }
 
     setIsSubmitting(true);
+    setAnchorPhotoUploadProgress(null);
     setError(null);
     try {
       const journeyId = await createJourney(user, form);
@@ -49,6 +103,7 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
           const uploadedPhoto = await uploadJourneyAnchorPhoto(
             journeyId,
             anchorPhoto,
+            (progress) => setAnchorPhotoUploadProgress(progress),
           );
 
           try {
@@ -75,6 +130,7 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
 
       setForm({ name: '', place: '', startDate: '', endDate: '' });
       setAnchorPhoto(null);
+      setAnchorPhotoUploadProgress(null);
       await onCreated();
 
       if (photoError) {
@@ -180,6 +236,18 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
               Choose file
             </label>
 
+            {isPreparingAnchorPhoto && (
+              <span className="journey-form__file-name">
+                Preparing photo…
+              </span>
+            )}
+
+            {anchorPhotoUploadProgress !== null && isSubmitting && (
+              <span className="journey-form__file-name">
+                Uploading photo {anchorPhotoUploadProgress}%
+              </span>
+            )}
+
             <span
               className="journey-form__file-name"
               title={anchorPhoto?.name ?? 'No file chosen'}
@@ -198,9 +266,15 @@ export function CreateJourneyForm({ user, onCreated }: { user: User; onCreated: 
         <button
           className="primary-button journey-form__submit"
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isPreparingAnchorPhoto}
         >
-          {isSubmitting ? 'Creating journey…' : 'Create Journey'}
+          {isPreparingAnchorPhoto
+            ? 'Preparing photo…'
+            : anchorPhotoUploadProgress !== null && isSubmitting
+              ? `Uploading photo ${anchorPhotoUploadProgress}%`
+              : isSubmitting
+                ? 'Creating journey…'
+                : 'Create Journey'}
         </button>
       </div>
     </form>

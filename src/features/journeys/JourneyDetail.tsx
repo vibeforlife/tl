@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
   doc,
@@ -118,6 +118,9 @@ export function JourneyDetail({
   const [editAnchorPhotoPreviewUrl, setEditAnchorPhotoPreviewUrl] =
     useState<string | null>(null);
   const [isPreparingAnchorPhoto, setIsPreparingAnchorPhoto] = useState(false);
+  const [anchorPhotoUploadProgress, setAnchorPhotoUploadProgress] =
+    useState<number | null>(null);
+  const anchorPhotoSelectionGenerationRef = useRef(0);
   const [isSavingJourney, setIsSavingJourney] = useState(false);
   useEffect(() => {
     if (!editAnchorPhoto) {
@@ -387,6 +390,9 @@ export function JourneyDetail({
     setManagementError(null);
     setEditAnchorPhoto(null);
     setRemoveAnchorPhoto(false);
+    setIsPreparingAnchorPhoto(false);
+    setAnchorPhotoUploadProgress(null);
+    anchorPhotoSelectionGenerationRef.current += 1;
     setEditInput({
       name: journey.name,
       place: journey.place,
@@ -404,16 +410,36 @@ export function JourneyDetail({
 
     if (!file) return;
 
+    const generation =
+      anchorPhotoSelectionGenerationRef.current + 1;
+    anchorPhotoSelectionGenerationRef.current = generation;
+
+    setEditAnchorPhoto(null);
     setIsPreparingAnchorPhoto(true);
+    setAnchorPhotoUploadProgress(null);
+    setRemoveAnchorPhoto(false);
     setManagementError(null);
 
     try {
       const optimizedFile =
         await optimizeImageFile(file);
 
+      if (
+        anchorPhotoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
       setEditAnchorPhoto(optimizedFile);
-      setRemoveAnchorPhoto(false);
     } catch (photoError) {
+      if (
+        anchorPhotoSelectionGenerationRef.current !==
+        generation
+      ) {
+        return;
+      }
+
       setEditAnchorPhoto(null);
 
       setManagementError(
@@ -422,7 +448,12 @@ export function JourneyDetail({
           : 'We could not prepare that photo for upload.',
       );
     } finally {
-      setIsPreparingAnchorPhoto(false);
+      if (
+        anchorPhotoSelectionGenerationRef.current ===
+        generation
+      ) {
+        setIsPreparingAnchorPhoto(false);
+      }
     }
   };
 
@@ -430,6 +461,7 @@ export function JourneyDetail({
     if (!journey || !editInput) return;
 
     setIsSavingJourney(true);
+    setAnchorPhotoUploadProgress(null);
     setManagementError(null);
 
     const previousAnchorPhoto = journey.anchorPhoto;
@@ -443,6 +475,7 @@ export function JourneyDetail({
         const uploadedPhoto = await uploadJourneyAnchorPhoto(
           journey.id,
           editAnchorPhoto,
+          (progress) => setAnchorPhotoUploadProgress(progress),
         );
 
         try {
@@ -1616,6 +1649,12 @@ export function JourneyDetail({
                     </span>
                   )}
 
+                  {anchorPhotoUploadProgress !== null && isSavingJourney && (
+                    <span className="journey-modal__photo-file-name">
+                      Uploading photo {anchorPhotoUploadProgress}%
+                    </span>
+                  )}
+
                   <span className="journey-modal__photo-file-name">
                     {editAnchorPhoto
                       ? editAnchorPhoto.name
@@ -1633,11 +1672,16 @@ export function JourneyDetail({
                       type="checkbox"
                       checked={removeAnchorPhoto}
                       onChange={(event) => {
-                        setRemoveAnchorPhoto(event.target.checked);
+                        const shouldRemove = event.target.checked;
 
-                        if (event.target.checked) {
+                        if (shouldRemove) {
+                          anchorPhotoSelectionGenerationRef.current += 1;
                           setEditAnchorPhoto(null);
+                          setIsPreparingAnchorPhoto(false);
+                          setAnchorPhotoUploadProgress(null);
                         }
+
+                        setRemoveAnchorPhoto(shouldRemove);
                       }}
                       disabled={isSavingJourney}
                     />
@@ -1664,7 +1708,13 @@ export function JourneyDetail({
               <button
                 className="text-button"
                 type="button"
-                onClick={() => setIsEditOpen(false)}
+                onClick={() => {
+                  anchorPhotoSelectionGenerationRef.current += 1;
+                  setIsPreparingAnchorPhoto(false);
+                  setAnchorPhotoUploadProgress(null);
+                  setEditAnchorPhoto(null);
+                  setIsEditOpen(false);
+                }}
                 disabled={isSavingJourney}
               >
                 Cancel
@@ -1679,11 +1729,13 @@ export function JourneyDetail({
                   isPreparingAnchorPhoto
                 }
               >
-                {isSavingJourney
-                  ? 'Saving…'
-                  : isPreparingAnchorPhoto
-                    ? 'Preparing photo…'
-                    : 'Save changes'}
+                {isPreparingAnchorPhoto
+                  ? 'Preparing photo…'
+                  : anchorPhotoUploadProgress !== null && isSavingJourney
+                    ? `Uploading photo ${anchorPhotoUploadProgress}%`
+                    : isSavingJourney
+                      ? 'Saving…'
+                      : 'Save changes'}
               </button>
             </div>
           </div>

@@ -114,6 +114,51 @@ describe('Journey anchor photo implementation contracts', () => {
     expect(source).toContain('export const uploadJourneyAnchorPhoto');
   });
 
+  it('protects JourneyDetail anchor photo preparation from stale selections', () => {
+    const source = readRepoFile('src/features/journeys/JourneyDetail.tsx');
+
+    expect(source).toContain('anchorPhotoSelectionGenerationRef');
+    expect(source).toContain(
+      'anchorPhotoSelectionGenerationRef.current !==',
+    );
+    expect(source).toContain(
+      'anchorPhotoSelectionGenerationRef.current += 1;',
+    );
+  });
+
+  it('shows JourneyDetail anchor photo upload progress', () => {
+    const source = readRepoFile('src/features/journeys/JourneyDetail.tsx');
+
+    expect(source).toContain('anchorPhotoUploadProgress');
+    expect(source).toContain('Uploading photo {anchorPhotoUploadProgress}%');
+    expect(source).toContain(
+      '(progress) => setAnchorPhotoUploadProgress(progress)',
+    );
+  });
+
+  it('optimizes and protects new Journey anchor photo selection', () => {
+    const source = readRepoFile('src/features/journeys/CreateJourneyForm.tsx');
+
+    expect(source).toContain(
+      "import { optimizeImageFile } from '../../services/firebase/imageOptimization';",
+    );
+    expect(source).toContain('optimizeImageFile(file)');
+    expect(source).toContain('anchorPhotoSelectionGenerationRef');
+    expect(source).toContain(
+      'anchorPhotoSelectionGenerationRef.current !==',
+    );
+  });
+
+  it('shows new Journey anchor photo upload progress', () => {
+    const source = readRepoFile('src/features/journeys/CreateJourneyForm.tsx');
+
+    expect(source).toContain('anchorPhotoUploadProgress');
+    expect(source).toContain('Uploading photo {anchorPhotoUploadProgress}%');
+    expect(source).toContain(
+      '(progress) => setAnchorPhotoUploadProgress(progress)',
+    );
+  });
+
   it('creates the Journey first and then attaches an optional anchor photo', () => {
     const source = readRepoFile('src/features/journeys/CreateJourneyForm.tsx');
 
@@ -262,7 +307,10 @@ describe('Journey anchor photo implementation contracts', () => {
       'checked={removeAnchorPhoto}',
     );
     expect(source).toContain(
-      'setRemoveAnchorPhoto(event.target.checked);',
+      'const shouldRemove = event.target.checked;',
+    );
+    expect(source).toContain(
+      'setRemoveAnchorPhoto(shouldRemove);',
     );
     expect(source).toContain(
       'setEditAnchorPhoto(null);',

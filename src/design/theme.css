@@ -604,7 +604,7 @@ select:focus {
   justify-content: space-between;
   align-items: end;
   gap: 30px;
-  padding-bottom: 48px;
+  padding: 0 32px 48px;
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
@@ -1346,7 +1346,8 @@ select:focus {
   color: rgba(216,182,92,.7);
 }
 
-.entry-card__story-details summary span {
+.entry-card__story-details summary .entry-card__story-read-full,
+.entry-card__story-details summary .entry-card__story-read-less {
   display: inline-block;
   margin-left: 7px;
   color: rgba(64,199,189,.78);
@@ -1356,8 +1357,17 @@ select:focus {
   text-transform: uppercase;
 }
 
-.entry-card__story-details[open] summary span {
+.entry-card__story-details summary .entry-card__story-read-less {
   display: none;
+}
+
+.entry-card__story-details[open] .entry-card__story-preview,
+.entry-card__story-details[open] .entry-card__story-read-full {
+  display: none;
+}
+
+.entry-card__story-details[open] .entry-card__story-read-less {
+  display: inline-block;
 }
 
 .entry-card__story-details[open] .entry-card__story {
@@ -4604,10 +4614,10 @@ select:focus {
   max-width: none;
   min-height: 340px;
   margin-bottom: 0;
-  padding: 72px 0 68px;
+  padding: 88px 32px 36px;
   overflow: hidden;
   isolation: isolate;
-  border-radius: 0 0 28px 28px;
+  border-radius: 28px;
   background: #03141e;
 }
 
@@ -4765,8 +4775,8 @@ select:focus {
 @media (max-width: 760px) {
   .journey-home:not(.journey-detail) .journey-home__hero {
     min-height: 300px;
-    padding: 58px 0 56px;
-    border-radius: 0 0 22px 22px;
+    padding: 64px 24px 48px;
+    border-radius: 22px;
   }
 
   .journey-home:not(.journey-detail) .journey-home__hero-image {

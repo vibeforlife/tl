@@ -2604,6 +2604,7 @@ select:focus {
   .journey-detail .entry-sort {
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .journey-detail .entry-river-summary {

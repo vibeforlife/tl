@@ -1283,8 +1283,15 @@ export function JourneyDetail({
                           {entry.story.length > 280 ? (
                             <details className="entry-card__story-details">
                               <summary>
-                                {getStoryPreview(entry.story)}{' '}
-                                <span>Read full story</span>
+                                <span className="entry-card__story-preview">
+                                  {getStoryPreview(entry.story)}
+                                </span>{' '}
+                                <span className="entry-card__story-read-full">
+                                  Read full story
+                                </span>
+                                <span className="entry-card__story-read-less">
+                                  Read less
+                                </span>
                               </summary>
                               <p className="entry-card__story">
                                 {entry.story}

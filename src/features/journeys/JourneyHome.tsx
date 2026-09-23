@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { Journey } from '../../types/domain';
 import { listMyJourneys } from '../../services/firebase/journeys';
@@ -22,6 +22,7 @@ export function JourneyHome({
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const editingEntryDirtyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadJourneys = useCallback(async () => {
@@ -42,6 +43,21 @@ export function JourneyHome({
   }, [loadJourneys]);
 
   useEffect(() => {
+    if (homeRequest === 0) {
+      return;
+    }
+
+    if (editingEntryDirtyRef.current) {
+      const shouldDiscard = window.confirm(
+        'You have unsaved changes to this memory. Discard them?',
+      );
+
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+
+    editingEntryDirtyRef.current = false;
     setSelectedJourneyId(null);
   }, [homeRequest]);
 
@@ -50,6 +66,9 @@ export function JourneyHome({
       <JourneyDetail
         user={user}
         journeyId={selectedJourneyId}
+        onEntryEditDirtyChange={(dirty) => {
+          editingEntryDirtyRef.current = dirty;
+        }}
         onBack={() => {
           setSelectedJourneyId(null);
           void loadJourneys();

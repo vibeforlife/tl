@@ -100,10 +100,12 @@ export function JourneyDetail({
   user,
   journeyId,
   onBack,
+  onEntryEditDirtyChange,
 }: {
   user: User;
   journeyId: string;
   onBack: () => void;
+  onEntryEditDirtyChange?: (dirty: boolean) => void;
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [journeyRole, setJourneyRole] = useState<JourneyRole | null>(null);
@@ -145,6 +147,7 @@ export function JourneyDetail({
   const [isCreatingShareLink, setIsCreatingShareLink] =
     useState<InvitationRole | null>(null);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [isEditingEntryDirty, setIsEditingEntryDirty] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [deleteEntryConfirmed, setDeleteEntryConfirmed] = useState(false);
   const [isDeletingEntry, setIsDeletingEntry] = useState(false);
@@ -552,17 +555,50 @@ export function JourneyDetail({
     }
   };
 
+  useEffect(() => {
+    if (!editingEntry || !isEditingEntryDirty) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [editingEntry, isEditingEntryDirty]);
+
   const openEditEntry = (entry: Entry) => {
     if (!canEditJourney) return;
+    setIsEditingEntryDirty(false);
+    onEntryEditDirtyChange?.(false);
     setEditingEntry(entry);
   };
 
   const closeEditEntry = () => {
+    if (
+      isEditingEntryDirty &&
+      !window.confirm(
+        'You have unsaved changes to this memory. Discard them?',
+      )
+    ) {
+      return false;
+    }
+
+    setIsEditingEntryDirty(false);
+    onEntryEditDirtyChange?.(false);
     setEditingEntry(null);
+    return true;
   };
 
   const handleEntryUpdated = async () => {
     await load();
+    setIsEditingEntryDirty(false);
+    onEntryEditDirtyChange?.(false);
     setEditingEntry(null);
   };
 
@@ -668,7 +704,17 @@ export function JourneyDetail({
 
   return (
     <main className="journey-home journey-detail">
-      <button className="text-button text-button--back" type="button" onClick={onBack}>
+      <button
+        className="text-button text-button--back"
+        type="button"
+        onClick={() => {
+          if (editingEntry && !closeEditEntry()) {
+            return;
+          }
+
+          onBack();
+        }}
+      >
         ← Your journeys
       </button>
 
@@ -1505,6 +1551,10 @@ export function JourneyDetail({
                 idPrefix="edit-memory"
                 onCreated={() => undefined}
                 onUpdated={handleEntryUpdated}
+                onDirtyChange={(dirty) => {
+                  setIsEditingEntryDirty(dirty);
+                  onEntryEditDirtyChange?.(dirty);
+                }}
               />
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { isEntryDraftDirty } from './entryDirtyState';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
 import {
@@ -118,6 +119,7 @@ export function CreateEntryForm({
   onCreated,
   entry,
   onUpdated,
+  onDirtyChange,
   idPrefix = 'entry',
 }: {
   user: User;
@@ -125,6 +127,7 @@ export function CreateEntryForm({
   onCreated: () => Promise<void> | void;
   entry?: Entry;
   onUpdated?: () => Promise<void> | void;
+  onDirtyChange?: (dirty: boolean) => void;
   idPrefix?: string;
 }) {
   const [form, setForm] = useState<CreateEntryInput>({
@@ -230,6 +233,35 @@ export function CreateEntryForm({
     setShowManualLocation(Boolean(entry.location));
     setError(null);
   }, [entry]);
+
+  useEffect(() => {
+    if (!entry || !onDirtyChange) {
+      return;
+    }
+
+    const dirty = isEntryDraftDirty(
+      entry,
+      form,
+      peopleText,
+      tagsText,
+      manualLocation,
+      photoCaption,
+      pendingPhotoFile,
+      removeExistingPhoto,
+    );
+
+    onDirtyChange(dirty);
+  }, [
+    entry,
+    form,
+    peopleText,
+    tagsText,
+    manualLocation,
+    photoCaption,
+    pendingPhotoFile,
+    removeExistingPhoto,
+    onDirtyChange,
+  ]);
 
   const update = <K extends keyof CreateEntryInput>(
     field: K,

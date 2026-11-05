@@ -25,6 +25,7 @@ import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/firebase/storage';
 import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
+import type { EntryViewMode } from './navigationState';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
     default: JourneyMap,
@@ -64,7 +65,6 @@ const memoryTypeLabels: Record<NonNullable<Entry['memoryType']>, string> = {
   other: 'Other',
 };
 
-type EntryViewMode = 'compact' | 'cards' | 'map';
 type EntrySortField = 'date' | 'rating' | 'title' | 'location' | 'type';
 
 const sortLabels: Record<EntrySortField, string> = {
@@ -101,11 +101,15 @@ export function JourneyDetail({
   journeyId,
   onBack,
   onEntryEditDirtyChange,
+  initialEntryViewMode = 'compact',
+  onEntryViewModeChange,
 }: {
   user: User;
   journeyId: string;
   onBack: () => void;
   onEntryEditDirtyChange?: (dirty: boolean) => void;
+  initialEntryViewMode?: EntryViewMode;
+  onEntryViewModeChange?: (mode: EntryViewMode) => void;
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [journeyRole, setJourneyRole] = useState<JourneyRole | null>(null);
@@ -159,7 +163,13 @@ export function JourneyDetail({
   const [personFilter, setPersonFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [entryViewMode, setEntryViewMode] = useState<EntryViewMode>('compact');
+  const [entryViewMode, setEntryViewMode] =
+    useState<EntryViewMode>(initialEntryViewMode);
+
+  const handleEntryViewModeChange = (nextMode: EntryViewMode) => {
+    setEntryViewMode(nextMode);
+    onEntryViewModeChange?.(nextMode);
+  };
   const [entrySortField, setEntrySortField] = useState<EntrySortField>('date');
   const [entrySortDirection, setEntrySortDirection] =
     useState<'asc' | 'desc'>('desc');
@@ -603,7 +613,7 @@ export function JourneyDetail({
   };
 
   const handleViewEntryFromMap = (entry: Entry) => {
-    setEntryViewMode('compact');
+    handleEntryViewModeChange('compact');
 
     requestAnimationFrame(() => {
       const target = document.querySelector<HTMLElement>(
@@ -988,7 +998,7 @@ export function JourneyDetail({
                   <button
                     className={entryViewMode === 'compact' ? 'entry-view-button entry-view-button--active' : 'entry-view-button'}
                     type="button"
-                    onClick={() => setEntryViewMode('compact')}
+                    onClick={() => handleEntryViewModeChange('compact')}
                     aria-pressed={entryViewMode === 'compact'}
                   >
                     Compact
@@ -997,7 +1007,7 @@ export function JourneyDetail({
                   <button
                     className={entryViewMode === 'cards' ? 'entry-view-button entry-view-button--active' : 'entry-view-button'}
                     type="button"
-                    onClick={() => setEntryViewMode('cards')}
+                    onClick={() => handleEntryViewModeChange('cards')}
                     aria-pressed={entryViewMode === 'cards'}
                   >
                     Cards
@@ -1010,7 +1020,7 @@ export function JourneyDetail({
                         : 'entry-view-button'
                     }
                     type="button"
-                    onClick={() => setEntryViewMode('map')}
+                    onClick={() => handleEntryViewModeChange('map')}
                     aria-pressed={entryViewMode === 'map'}
                   >
                     Map

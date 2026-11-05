@@ -4,6 +4,11 @@ import type { Journey } from '../../types/domain';
 import { listMyJourneys } from '../../services/firebase/journeys';
 import { CreateJourneyForm } from './CreateJourneyForm';
 import { JourneyDetail } from './JourneyDetail';
+import {
+  readJourneyNavigationState,
+  saveJourneyNavigationState,
+  type EntryViewMode,
+} from './navigationState';
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -24,13 +29,34 @@ export function JourneyHome({
   const [isLoading, setIsLoading] = useState(true);
   const editingEntryDirtyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEntryViewMode, setSelectedEntryViewMode] =
+    useState<EntryViewMode>('compact');
+  const hasRestoredNavigationRef = useRef(false);
 
   const loadJourneys = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      setJourneys(await listMyJourneys(user.uid));
+      const nextJourneys = await listMyJourneys(user.uid);
+      setJourneys(nextJourneys);
+
+      if (!hasRestoredNavigationRef.current) {
+        hasRestoredNavigationRef.current = true;
+        const savedNavigation = readJourneyNavigationState(user.uid);
+
+        if (
+          savedNavigation.page === 'journey' &&
+          nextJourneys.some(
+            (journey) => journey.id === savedNavigation.journeyId,
+          )
+        ) {
+          setSelectedEntryViewMode(savedNavigation.entryViewMode);
+          setSelectedJourneyId(savedNavigation.journeyId);
+        } else {
+          saveJourneyNavigationState(user.uid, { page: 'home' });
+        }
+      }
     } catch {
       setError('We could not load your journeys. Please try again.');
     } finally {
@@ -58,18 +84,30 @@ export function JourneyHome({
     }
 
     editingEntryDirtyRef.current = false;
+    hasRestoredNavigationRef.current = true;
+    saveJourneyNavigationState(user.uid, { page: 'home' });
     setSelectedJourneyId(null);
-  }, [homeRequest]);
+  }, [homeRequest, user.uid]);
 
   if (selectedJourneyId) {
     return (
       <JourneyDetail
         user={user}
         journeyId={selectedJourneyId}
+        initialEntryViewMode={selectedEntryViewMode}
+        onEntryViewModeChange={(entryViewMode) => {
+          setSelectedEntryViewMode(entryViewMode);
+          saveJourneyNavigationState(user.uid, {
+            page: 'journey',
+            journeyId: selectedJourneyId,
+            entryViewMode,
+          });
+        }}
         onEntryEditDirtyChange={(dirty) => {
           editingEntryDirtyRef.current = dirty;
         }}
         onBack={() => {
+          saveJourneyNavigationState(user.uid, { page: 'home' });
           setSelectedJourneyId(null);
           void loadJourneys();
         }}
@@ -137,7 +175,22 @@ export function JourneyHome({
                   .join(' ')}
                 key={journey.id}
                 type="button"
-                onClick={() => setSelectedJourneyId(journey.id)}
+                onClick={() => {
+                  const savedNavigation = readJourneyNavigationState(user.uid);
+                  const nextViewMode =
+                    savedNavigation.page === 'journey' &&
+                    savedNavigation.journeyId === journey.id
+                      ? savedNavigation.entryViewMode
+                      : 'compact';
+
+                  setSelectedEntryViewMode(nextViewMode);
+                  saveJourneyNavigationState(user.uid, {
+                    page: 'journey',
+                    journeyId: journey.id,
+                    entryViewMode: nextViewMode,
+                  });
+                  setSelectedJourneyId(journey.id);
+                }}
                 style={
                   journey.anchorPhoto
                     ? {

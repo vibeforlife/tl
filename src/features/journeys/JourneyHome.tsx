@@ -5,6 +5,7 @@ import { listMyJourneys } from '../../services/firebase/journeys';
 import { CreateJourneyForm } from './CreateJourneyForm';
 import { JourneyDetail } from './JourneyDetail';
 import {
+  clearJourneyScrollPosition,
   readJourneyNavigationState,
   saveJourneyNavigationState,
   type EntryViewMode,
@@ -28,6 +29,8 @@ export function JourneyHome({
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const editingEntryDirtyRef = useRef(false);
+  const selectedJourneyIdRef = useRef<string | null>(null);
+  selectedJourneyIdRef.current = selectedJourneyId;
   const [error, setError] = useState<string | null>(null);
   const [selectedEntryViewMode, setSelectedEntryViewMode] =
     useState<EntryViewMode>('compact');
@@ -85,6 +88,9 @@ export function JourneyHome({
 
     editingEntryDirtyRef.current = false;
     hasRestoredNavigationRef.current = true;
+    if (selectedJourneyIdRef.current) {
+      clearJourneyScrollPosition(user.uid, selectedJourneyIdRef.current);
+    }
     saveJourneyNavigationState(user.uid, { page: 'home' });
     setSelectedJourneyId(null);
   }, [homeRequest, user.uid]);
@@ -107,6 +113,7 @@ export function JourneyHome({
           editingEntryDirtyRef.current = dirty;
         }}
         onBack={() => {
+          clearJourneyScrollPosition(user.uid, selectedJourneyId);
           saveJourneyNavigationState(user.uid, { page: 'home' });
           setSelectedJourneyId(null);
           void loadJourneys();

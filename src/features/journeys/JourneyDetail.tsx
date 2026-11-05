@@ -25,7 +25,11 @@ import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/firebase/storage';
 import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
-import type { EntryViewMode } from './navigationState';
+import {
+  readJourneyScrollPosition,
+  saveJourneyScrollPosition,
+  type EntryViewMode,
+} from './navigationState';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
     default: JourneyMap,
@@ -230,6 +234,76 @@ export function JourneyDetail({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Restore only after the Journey and its Memories have loaded and rendered.
+  useEffect(() => {
+    if (isLoading || error || !journey) return;
+
+    const savedPosition = readJourneyScrollPosition(user.uid, journeyId);
+    let firstFrame = 0;
+    let secondFrame = 0;
+
+    firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        window.scrollTo({ top: savedPosition, behavior: 'auto' });
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, [isLoading, error, journey, journeyId, user.uid]);
+
+  // Track the page scroll without writing to localStorage on every scroll event.
+  useEffect(() => {
+    let trackingReady = false;
+    let pendingFrame: number | null = null;
+
+    const savePosition = () => {
+      saveJourneyScrollPosition(user.uid, journeyId, window.scrollY);
+    };
+
+    const handleScroll = () => {
+      if (!trackingReady) return;
+
+      if (pendingFrame !== null) {
+        cancelAnimationFrame(pendingFrame);
+      }
+
+      pendingFrame = requestAnimationFrame(() => {
+        pendingFrame = null;
+        savePosition();
+      });
+    };
+
+    const handlePageHide = () => {
+      if (trackingReady) savePosition();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') handlePageHide();
+    };
+
+    // Do not overwrite the saved position while the initial page is loading.
+    const enableTracking = () => {
+      trackingReady = true;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const readyFrame = requestAnimationFrame(enableTracking);
+
+    return () => {
+      cancelAnimationFrame(readyFrame);
+      if (pendingFrame !== null) cancelAnimationFrame(pendingFrame);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [journeyId, user.uid]);
 
   const availablePeople = useMemo(
     () =>

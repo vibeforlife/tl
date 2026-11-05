@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   readJourneyNavigationState,
   saveJourneyNavigationState,
+  readJourneyScrollPosition,
+  saveJourneyScrollPosition,
+  clearJourneyScrollPosition,
 } from '../src/features/journeys/navigationState';
 
 const createStorage = () => {
@@ -10,6 +13,7 @@ const createStorage = () => {
   return {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   };
 };
 
@@ -119,12 +123,53 @@ describe('Journey navigation persistence', () => {
     });
   });
 
+  it('saves and restores a Journey scroll position', () => {
+    const storage = createStorage();
+
+    saveJourneyScrollPosition('user-1', 'journey-1', 1245.6, storage);
+
+    expect(readJourneyScrollPosition('user-1', 'journey-1', storage)).toBe(1246);
+  });
+
+  it('keeps scroll positions separate by user and Journey', () => {
+    const storage = createStorage();
+
+    saveJourneyScrollPosition('user-1', 'journey-1', 500, storage);
+    saveJourneyScrollPosition('user-1', 'journey-2', 900, storage);
+    saveJourneyScrollPosition('user-2', 'journey-1', 1200, storage);
+
+    expect(readJourneyScrollPosition('user-1', 'journey-1', storage)).toBe(500);
+    expect(readJourneyScrollPosition('user-1', 'journey-2', storage)).toBe(900);
+    expect(readJourneyScrollPosition('user-2', 'journey-1', storage)).toBe(1200);
+  });
+
+  it('clears a saved Journey scroll position', () => {
+    const storage = createStorage();
+
+    saveJourneyScrollPosition('user-1', 'journey-1', 750, storage);
+    clearJourneyScrollPosition('user-1', 'journey-1', storage);
+
+    expect(readJourneyScrollPosition('user-1', 'journey-1', storage)).toBe(0);
+  });
+
+  it('uses zero for invalid or negative scroll positions', () => {
+    const storage = createStorage();
+    storage.setItem('travel-lore:scroll:v1:user-1:journey-1', '-20');
+    expect(readJourneyScrollPosition('user-1', 'journey-1', storage)).toBe(0);
+
+    storage.setItem('travel-lore:scroll:v1:user-1:journey-1', 'not-a-number');
+    expect(readJourneyScrollPosition('user-1', 'journey-1', storage)).toBe(0);
+  });
+
   it('continues safely when browser storage throws', () => {
     const brokenStorage = {
       getItem: () => {
         throw new Error('Storage unavailable');
       },
       setItem: () => {
+        throw new Error('Storage unavailable');
+      },
+      removeItem: () => {
         throw new Error('Storage unavailable');
       },
     };

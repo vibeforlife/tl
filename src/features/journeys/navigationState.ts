@@ -1,4 +1,4 @@
-export type EntryViewMode = 'compact' | 'cards' | 'map';
+export type EntryViewMode = 'cards' | 'album' | 'map';
 
 export type JourneyNavigationState =
   | { page: 'home' }
@@ -20,7 +20,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 const isEntryViewMode = (value: unknown): value is EntryViewMode =>
-  value === 'compact' || value === 'cards' || value === 'map';
+  value === 'cards' || value === 'album' || value === 'map';
 
 const getBrowserStorage = (): StorageLike | null => {
   if (typeof window === 'undefined') return null;
@@ -119,9 +119,12 @@ export const readJourneyNavigationState = (
     return {
       page: 'journey',
       journeyId: parsed.journeyId,
-      entryViewMode: isEntryViewMode(parsed.entryViewMode)
-        ? parsed.entryViewMode
-        : 'compact',
+      entryViewMode:
+        parsed.entryViewMode === 'compact'
+          ? 'cards'
+          : isEntryViewMode(parsed.entryViewMode)
+            ? parsed.entryViewMode
+            : 'cards',
     };
   } catch {
     return homeState;

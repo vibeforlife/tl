@@ -30,6 +30,7 @@ import {
   saveJourneyScrollPosition,
   type EntryViewMode,
 } from './navigationState';
+import { buildJustifiedRows } from './albumLayout';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
     default: JourneyMap,
@@ -105,7 +106,7 @@ export function JourneyDetail({
   journeyId,
   onBack,
   onEntryEditDirtyChange,
-  initialEntryViewMode = 'compact',
+  initialEntryViewMode = 'cards',
   onEntryViewModeChange,
 }: {
   user: User;
@@ -169,6 +170,16 @@ export function JourneyDetail({
   const [showFilters, setShowFilters] = useState(false);
   const [entryViewMode, setEntryViewMode] =
     useState<EntryViewMode>(initialEntryViewMode);
+  const [selectedAlbumEntryId, setSelectedAlbumEntryId] =
+    useState<string | null>(null);
+  const [albumSortDirection, setAlbumSortDirection] =
+    useState<'asc' | 'desc'>('asc');
+  const [albumWidth, setAlbumWidth] = useState(0);
+  const [albumAspectRatios, setAlbumAspectRatios] =
+    useState<Record<string, number>>({});
+  const albumContainerRef = useRef<HTMLDivElement | null>(null);
+  const lightboxContentRef = useRef<HTMLDivElement | null>(null);
+  const albumTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const handleEntryViewModeChange = (nextMode: EntryViewMode) => {
     setEntryViewMode(nextMode);
@@ -404,6 +415,57 @@ export function JourneyDetail({
 
     return nextEntries;
   }, [entrySortDirection, entrySortField, filteredEntries]);
+
+  const albumEntries = useMemo(() => {
+    const nextEntries = filteredEntries.filter((entry) =>
+      Boolean(entry.photo?.url),
+    );
+    nextEntries.sort((a, b) => {
+      const aValue = `${a.date}T${a.time ?? '00:00'}`;
+      const bValue = `${b.date}T${b.time ?? '00:00'}`;
+      const comparison = aValue.localeCompare(bValue);
+      return albumSortDirection === 'asc' ? comparison : -comparison;
+    });
+    return nextEntries;
+  }, [albumSortDirection, filteredEntries]);
+
+  const albumRows = useMemo(
+    () =>
+      buildJustifiedRows(
+        albumEntries,
+        albumAspectRatios,
+        albumWidth,
+      ),
+    [albumAspectRatios, albumEntries, albumWidth],
+  );
+
+  useEffect(() => {
+    const container = albumContainerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      setAlbumWidth(container.clientWidth);
+    };
+    updateWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [entryViewMode, albumEntries.length]);
+
+  const selectedAlbumEntry =
+    albumEntries.find((entry) => entry.id === selectedAlbumEntryId) ?? null;
+
+  useEffect(() => {
+    if (selectedAlbumEntryId && !selectedAlbumEntry) {
+      setSelectedAlbumEntryId(null);
+    }
+  }, [selectedAlbumEntry, selectedAlbumEntryId]);
 
   const activeFilterCount = [
     dateFrom,
@@ -686,26 +748,93 @@ export function JourneyDetail({
     setEditingEntry(null);
   };
 
-  const handleViewEntryFromMap = (entry: Entry) => {
-    handleEntryViewModeChange('compact');
+  const handleOpenMemory = (entry: Entry) => {
+    setSelectedAlbumEntryId(null);
+    handleEntryViewModeChange('cards');
 
     requestAnimationFrame(() => {
-      const target = document.querySelector<HTMLElement>(
-        `[data-entry-id="${entry.id}"]`,
-      );
+      requestAnimationFrame(() => {
+        const target = Array.from(
+          document.querySelectorAll<HTMLElement>('[data-entry-id]'),
+        ).find((element) => element.dataset.entryId === entry.id);
 
-      if (!target) return;
-
-      if (target instanceof HTMLDetailsElement) {
-        target.open = true;
-      }
-
-      target.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        target?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
       });
     });
   };
+
+  const handleViewEntryFromMap = (entry: Entry) => {
+    handleOpenMemory(entry);
+  };
+
+  useEffect(() => {
+    if (!selectedAlbumEntry) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusFrame = requestAnimationFrame(() => {
+      lightboxContentRef.current
+        ?.querySelector<HTMLElement>('.entry-lightbox__close')
+        ?.focus();
+    });
+
+    const handleLightboxKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSelectedAlbumEntryId(null);
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const currentIndex = albumEntries.findIndex(
+          (entry) => entry.id === selectedAlbumEntry.id,
+        );
+        if (currentIndex < 0 || albumEntries.length < 2) return;
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const nextIndex =
+          (currentIndex + direction + albumEntries.length) % albumEntries.length;
+        setSelectedAlbumEntryId(albumEntries[nextIndex].id);
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        const focusable = Array.from(
+          lightboxContentRef.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ) ?? [],
+        );
+        if (focusable.length === 0) {
+          event.preventDefault();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey && (active === first || !lightboxContentRef.current?.contains(active))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (active === last || !lightboxContentRef.current?.contains(active))) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleLightboxKeyDown);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', handleLightboxKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      if (albumTriggerRef.current?.isConnected) {
+        albumTriggerRef.current.focus();
+      }
+    };
+  }, [albumEntries, selectedAlbumEntry]);
 
   const openDeleteEntry = (entry: Entry) => {
     if (!canEditJourney) return;
@@ -1070,21 +1199,21 @@ export function JourneyDetail({
               <div className="entry-display-controls">
                 <div className="entry-view-switcher" aria-label="Memory view">
                   <button
-                    className={entryViewMode === 'compact' ? 'entry-view-button entry-view-button--active' : 'entry-view-button'}
-                    type="button"
-                    onClick={() => handleEntryViewModeChange('compact')}
-                    aria-pressed={entryViewMode === 'compact'}
-                  >
-                    Compact
-                  </button>
-
-                  <button
                     className={entryViewMode === 'cards' ? 'entry-view-button entry-view-button--active' : 'entry-view-button'}
                     type="button"
                     onClick={() => handleEntryViewModeChange('cards')}
                     aria-pressed={entryViewMode === 'cards'}
                   >
                     Cards
+                  </button>
+
+                  <button
+                    className={entryViewMode === 'album' ? 'entry-view-button entry-view-button--active' : 'entry-view-button'}
+                    type="button"
+                    onClick={() => handleEntryViewModeChange('album')}
+                    aria-pressed={entryViewMode === 'album'}
+                  >
+                    Album
                   </button>
 
                   <button
@@ -1101,6 +1230,7 @@ export function JourneyDetail({
                   </button>
                 </div>
 
+                {entryViewMode === 'cards' && (
                 <div className="entry-sort" aria-label="Sort memories">
                   <span className="entry-sort__label">Sort</span>
 
@@ -1156,15 +1286,48 @@ export function JourneyDetail({
                     </span>
                   </button>
                 </div>
+                )}
+
+                {entryViewMode === 'album' && (
+                  <div className="entry-sort entry-sort--album" aria-label="Sort album photos">
+                    <span className="entry-sort__label">Album order</span>
+                    <button
+                      className="entry-sort__direction"
+                      type="button"
+                      onClick={() =>
+                        setAlbumSortDirection((current) =>
+                          current === 'asc' ? 'desc' : 'asc',
+                        )
+                      }
+                      aria-label={
+                        albumSortDirection === 'asc'
+                          ? 'Switch to newest first'
+                          : 'Switch to oldest first'
+                      }
+                    >
+                      <span aria-hidden="true">
+                        {albumSortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                      <span>
+                        {albumSortDirection === 'asc' ? 'Oldest first' : 'Newest first'}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="entry-results-summary">
                 <span>
-                  {filteredEntries.length}{' '}
-                  {filteredEntries.length === 1 ? 'memory' : 'memories'}
+                  {entryViewMode === 'album'
+                    ? `${albumEntries.length} ${albumEntries.length === 1 ? 'photo' : 'photos'}`
+                    : `${filteredEntries.length} ${filteredEntries.length === 1 ? 'memory' : 'memories'}`}
                 </span>
                 {filteredEntries.length !== entries.length && (
-                  <span>of {entries.length}</span>
+                  <span>
+                    {entryViewMode === 'album'
+                      ? `from ${filteredEntries.length} matching memories`
+                      : `of ${entries.length} memories`}
+                  </span>
                 )}
               </div>
 
@@ -1215,132 +1378,63 @@ export function JourneyDetail({
                     </Suspense>
                   </div>
 
-                  <div className="entry-display-area__compact">
-                    {sortedEntries.map((entry) => (
-                      <details
-                        className="entry-river-item"
-                        key={`compact-${entry.id}`}
-                        data-entry-id={entry.id}
+                  <div className="entry-display-area__album">
+                    {albumEntries.length === 0 ? (
+                      <div className="empty-entries empty-entries--filtered">
+                        <p className="empty-entries__title">No photos in this selection.</p>
+                        <p>Memories without anchor photos are still available in Cards and Map.</p>
+                      </div>
+                    ) : (
+                      <div
+                        className="entry-album"
+                        aria-label="Memory photo album"
+                        ref={albumContainerRef}
                       >
-                        <summary className="entry-river-summary">
-                          <div className="entry-river-marker" aria-hidden="true">
-                            <span />
+                        {albumRows.map((row, rowIndex) => (
+                          <div
+                            className="entry-album__row"
+                            key={`album-row-${rowIndex}`}
+                            style={{ height: `${row.height}px` }}
+                          >
+                            {row.items.map(({ entry, width }) => (
+                              <button
+                                className="entry-album__item"
+                                key={entry.id}
+                                type="button"
+                                style={{ width: `${width}px`, height: `${row.height}px` }}
+                                onClick={(event) => {
+                                  albumTriggerRef.current = event.currentTarget;
+                                  setSelectedAlbumEntryId(entry.id);
+                                }}
+                                aria-label={`View photo for ${entry.title || 'memory'}`}
+                              >
+                                <img
+                                  src={entry.photo!.url}
+                                  alt=""
+                                  loading="lazy"
+                                  onLoad={(event) => {
+                                    const image = event.currentTarget;
+                                    if (!image.naturalWidth || !image.naturalHeight) return;
+                                    const ratio = image.naturalWidth / image.naturalHeight;
+                                    setAlbumAspectRatios((current) =>
+                                      current[entry.id] === ratio
+                                        ? current
+                                        : { ...current, [entry.id]: ratio },
+                                    );
+                                  }}
+                                />
+                              </button>
+                            ))}
                           </div>
-
-                          <div className="entry-river-date">
-                            <span className="entry-river-day">
-                              {new Date(`${entry.date}T00:00:00`).toLocaleDateString(
-                                undefined,
-                                { day: 'numeric' },
-                              )}
-                            </span>
-                            <span className="entry-river-month">
-                              {new Date(`${entry.date}T00:00:00`).toLocaleDateString(
-                                undefined,
-                                { month: 'short' },
-                              )}
-                            </span>
-                            <span className="entry-river-year">
-                              {new Date(`${entry.date}T00:00:00`).toLocaleDateString(
-                                undefined,
-                                { year: 'numeric' },
-                              )}
-                            </span>
-                          </div>
-
-                          <div className="entry-river-content">
-                            <div className="entry-river-meta">
-                              {entry.time && <span>{entry.time}</span>}
-                              {entry.memoryType && (
-                                <span>{memoryTypeLabels[entry.memoryType]}</span>
-                              )}
-                              {entry.rating && (
-                                <span>★ {entry.rating}/5</span>
-                              )}
-                            </div>
-
-                            <div className="entry-river-title-row">
-                              <h3>{entry.title}</h3>
-                              {canEditJourney && (
-                                <span className="entry-actions">
-                                  <button
-                                    className="entry-action-button"
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      openEditEntry(entry);
-                                    }}
-                                    aria-label={`Edit ${entry.title}`}
-                                  >
-                                    Edit
-                                  </button>
-
-                                  <button
-                                    className="entry-action-button entry-action-button--danger"
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      openDeleteEntry(entry);
-                                    }}
-                                    aria-label={`Delete ${entry.title}`}
-                                  >
-                                    Delete
-                                  </button>
-                                </span>
-                              )}
-                            </div>
-
-                            {entry.highlight && (
-                              <p className="entry-river-highlight">
-                                {entry.highlight}
-                              </p>
-                            )}
-
-                            {entry.location && (
-                              <p className="entry-river-location">
-                                ◎ {entry.location.name}
-                              </p>
-                            )}
-
-                            <span
-                              className="entry-river-expand"
-                              aria-hidden="true"
-                            >
-                              ›
-                            </span>
-                          </div>
-                        </summary>
-
-                        <div className="entry-river-detail">
-                          <p className="entry-river-story">
-                            {entry.story}
-                          </p>
-
-                          {entry.people.length > 0 && (
-                            <div className="entry-river-detail__meta">
-                              <span>WITH</span>
-                              <span>{entry.people.join(', ')}</span>
-                            </div>
-                          )}
-
-                          {entry.tags.length > 0 && (
-                            <div className="entry-river-detail__tags">
-                              {entry.tags.map((tag) => (
-                                <span key={tag}>#{tag}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    ))}
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="entry-display-area__cards">
                     <div className="entry-grid">
                       {sortedEntries.map((entry) => (
-                        <article className="entry-card" key={entry.id}>
+                        <article className="entry-card" key={entry.id} data-entry-id={entry.id}>
                           <div className="entry-card__topline">
                             <div className="entry-card__date">
                               <span>{formatDate(entry.date)}</span>
@@ -1975,6 +2069,91 @@ export function JourneyDetail({
                 {isDeletingJourney ? 'Deleting…' : 'Delete permanently'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {selectedAlbumEntry?.photo && (
+        <div
+          className="entry-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Memory photo"
+        >
+          <button
+            className="entry-lightbox__backdrop"
+            type="button"
+            aria-label="Close photo"
+            onClick={() => setSelectedAlbumEntryId(null)}
+          />
+          <div className="entry-lightbox__content" ref={lightboxContentRef}>
+            <button
+              className="entry-lightbox__close"
+              type="button"
+              onClick={() => setSelectedAlbumEntryId(null)}
+              aria-label="Close photo"
+            >
+              ×
+            </button>
+            {albumEntries.length > 1 && (
+              <>
+                <button
+                  className="entry-lightbox__previous"
+                  type="button"
+                  onClick={() => {
+                    const index = albumEntries.findIndex(
+                      (entry) => entry.id === selectedAlbumEntry.id,
+                    );
+                    setSelectedAlbumEntryId(
+                      albumEntries[(index - 1 + albumEntries.length) % albumEntries.length].id,
+                    );
+                  }}
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  className="entry-lightbox__next"
+                  type="button"
+                  onClick={() => {
+                    const index = albumEntries.findIndex(
+                      (entry) => entry.id === selectedAlbumEntry.id,
+                    );
+                    setSelectedAlbumEntryId(
+                      albumEntries[(index + 1) % albumEntries.length].id,
+                    );
+                  }}
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+              </>
+            )}
+            <img
+              className="entry-lightbox__image"
+              src={selectedAlbumEntry.photo.url}
+              alt={
+                selectedAlbumEntry.photo.caption?.trim() ||
+                selectedAlbumEntry.title ||
+                'Memory photo'
+              }
+            />
+            {(selectedAlbumEntry.photo.caption?.trim() || selectedAlbumEntry.title) && (
+              <p className="entry-lightbox__caption">
+                {selectedAlbumEntry.photo.caption?.trim() || selectedAlbumEntry.title}
+              </p>
+            )}
+            {selectedAlbumEntry.date && (
+              <p className="entry-lightbox__date">
+                {formatDate(selectedAlbumEntry.date)}
+              </p>
+            )}
+            <button
+              className="entry-lightbox__open-memory"
+              type="button"
+              onClick={() => handleOpenMemory(selectedAlbumEntry)}
+            >
+              Open Memory
+            </button>
           </div>
         </div>
       )}

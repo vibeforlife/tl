@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
-import type { Journey } from '../../types/domain';
+import type { Entry, Journey } from '../../types/domain';
+import { listJourneyEntries } from '../../services/firebase/entries';
 import { listMyJourneys } from '../../services/firebase/journeys';
+import { TravelDashboard } from '../dashboard/TravelDashboard';
 import { CreateJourneyForm } from './CreateJourneyForm';
 import { JourneyDetail } from './JourneyDetail';
 import {
@@ -11,13 +13,6 @@ import {
   type EntryViewMode,
 } from './navigationState';
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(`${value}T00:00:00`));
-
 export function JourneyHome({
   user,
   homeRequest = 0,
@@ -26,8 +21,11 @@ export function JourneyHome({
   homeRequest?: number;
 }) {
   const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateJourneyOpen, setIsCreateJourneyOpen] = useState(false);
+  const createJourneySectionRef = useRef<HTMLElement | null>(null);
   const editingEntryDirtyRef = useRef(false);
   const selectedJourneyIdRef = useRef<string | null>(null);
   selectedJourneyIdRef.current = selectedJourneyId;
@@ -42,7 +40,11 @@ export function JourneyHome({
 
     try {
       const nextJourneys = await listMyJourneys(user.uid);
+      const entryGroups = await Promise.all(
+        nextJourneys.map((journey) => listJourneyEntries(journey.id)),
+      );
       setJourneys(nextJourneys);
+      setEntries(entryGroups.flat());
 
       if (!hasRestoredNavigationRef.current) {
         hasRestoredNavigationRef.current = true;
@@ -61,7 +63,7 @@ export function JourneyHome({
         }
       }
     } catch {
-      setError('We could not load your journeys. Please try again.');
+      setError('We could not load your travel dashboard. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +72,17 @@ export function JourneyHome({
   useEffect(() => {
     void loadJourneys();
   }, [loadJourneys]);
+
+  useEffect(() => {
+    if (isCreateJourneyOpen) {
+      createJourneySectionRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+        block: 'start',
+      });
+    }
+  }, [isCreateJourneyOpen]);
 
   useEffect(() => {
     if (homeRequest === 0) {
@@ -123,114 +136,63 @@ export function JourneyHome({
   }
 
   return (
-    <main className="journey-home">
-      <div className="journey-home__atmosphere" aria-hidden="true" />
-
-      <section className="journey-home__hero">
-        <div
-          className="journey-home__hero-image"
-          aria-hidden="true"
-        />
-
-        <p className="eyebrow">YOUR JOURNEYS</p>
-        <h1>Every place has a story.</h1>
-        <p className="journey-empty-copy">
-          Keep the places, moments, and memories worth remembering.
-        </p>
-      </section>
-
+    <div className="journey-home journey-home--dashboard">
       {error && (
         <p className="auth-error" role="alert">
           {error}
         </p>
       )}
 
-      <section
-        className="journey-home__existing"
-        aria-labelledby="existing-journeys-title"
-      >
-        <div className="journey-section-heading">
-          <p className="eyebrow" id="existing-journeys-title">
-            EXISTING JOURNEYS
-          </p>
-          {!isLoading && journeys.length > 0 && (
-            <span className="journey-count">
-              {journeys.length} {journeys.length === 1 ? 'journey' : 'journeys'}
-            </span>
-          )}
-        </div>
+      <TravelDashboard
+        journeys={journeys}
+        entries={entries}
+        isLoading={isLoading}
+        currentUserId={user.uid}
+        onCreateJourney={() => setIsCreateJourneyOpen(true)}
+        onOpenJourney={(journeyId) => {
+          const savedNavigation = readJourneyNavigationState(user.uid);
+          const nextViewMode =
+            savedNavigation.page === 'journey' &&
+            savedNavigation.journeyId === journeyId
+              ? savedNavigation.entryViewMode
+              : 'cards';
 
-        {isLoading ? (
-          <p className="journey-status" aria-live="polite">
-            Loading your journeys…
-          </p>
-        ) : journeys.length === 0 ? (
-          <div className="empty-journeys">
-            <p className="empty-journeys__title">Your story starts here.</p>
-            <p>Create your first journey below.</p>
+          setSelectedEntryViewMode(nextViewMode);
+          saveJourneyNavigationState(user.uid, {
+            page: 'journey',
+            journeyId,
+            entryViewMode: nextViewMode,
+          });
+          setSelectedJourneyId(journeyId);
+        }}
+      />
+
+      {isCreateJourneyOpen && (
+        <section
+          ref={createJourneySectionRef}
+          className="journey-home__create journey-home__create--dashboard"
+          aria-labelledby="new-journey-title"
+        >
+          <div className="td-create-journey-heading">
+            <p className="td-kicker">A NEW CHAPTER</p>
+            <button
+              className="td-create-journey-close"
+              type="button"
+              onClick={() => setIsCreateJourneyOpen(false)}
+            >
+              Close <span aria-hidden="true">×</span>
+            </button>
           </div>
-        ) : (
-          <section className="journey-grid" aria-label="Your journeys">
-            {journeys.map((journey) => (
-              <button
-                className={[
-                  'journey-card',
-                  'journey-card--button',
-                  journey.anchorPhoto ? 'journey-card--has-photo' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                key={journey.id}
-                type="button"
-                onClick={() => {
-                  const savedNavigation = readJourneyNavigationState(user.uid);
-                  const nextViewMode =
-                    savedNavigation.page === 'journey' &&
-                    savedNavigation.journeyId === journey.id
-                      ? savedNavigation.entryViewMode
-                      : 'cards';
-
-                  setSelectedEntryViewMode(nextViewMode);
-                  saveJourneyNavigationState(user.uid, {
-                    page: 'journey',
-                    journeyId: journey.id,
-                    entryViewMode: nextViewMode,
-                  });
-                  setSelectedJourneyId(journey.id);
-                }}
-                style={
-                  journey.anchorPhoto
-                    ? {
-                        backgroundImage: `url("${journey.anchorPhoto.url}")`,
-                      }
-                    : undefined
-                }
-              >
-                {journey.anchorPhoto ? (
-                  <span
-                    className="journey-card__photo-overlay"
-                    aria-hidden="true"
-                  />
-                ) : null}
-                <span className="journey-card__place">{journey.place}</span>
-                <span className="journey-card__title">{journey.name}</span>
-                <span className="journey-card__dates">
-                  {formatDate(journey.startDate)} — {formatDate(journey.endDate)}
-                </span>
-                <span className="journey-card__open">Open journey →</span>
-              </button>
-            ))}
-          </section>
-        )}
-      </section>
-
-      <section
-        className="journey-home__create"
-        aria-labelledby="new-journey-title"
-      >
-        <CreateJourneyForm user={user} onCreated={loadJourneys} />
-      </section>
-    </main>
+          <CreateJourneyForm
+            user={user}
+            onCreated={async () => {
+              await loadJourneys();
+              setIsCreateJourneyOpen(false);
+            }}
+          />
+        </section>
+      )}
+    </div>
   );
 
 }

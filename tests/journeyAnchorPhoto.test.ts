@@ -262,16 +262,12 @@ describe('Journey anchor photo implementation contracts', () => {
     );
   });
 
-  it('uses the anchor photo as the Journey card background', () => {
-    const source = readRepoFile('src/features/journeys/JourneyHome.tsx');
+  it('shows the Journey anchor photo on dashboard Journey cards', () => {
+    const source = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
 
-    expect(source).toContain(
-      "journey.anchorPhoto ? 'journey-card--has-photo' : ''",
-    );
-    expect(source).toContain(
-      'backgroundImage: `url("${journey.anchorPhoto.url}")`',
-    );
-    expect(source).toContain('journey-card__photo-overlay');
+    expect(source).toContain('journey.anchorPhoto?.url');
+    expect(source).toContain('src={journey.anchorPhoto.url}');
+    expect(source).toContain('td-journey-card__overlay');
   });
 
   it('uses the anchor photo as the Journey detail hero background', () => {

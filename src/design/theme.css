@@ -4988,3 +4988,20 @@ select:focus {
     right: 4px;
   }
 }
+
+/* Travel Dashboard foundation: keep the dashboard's editorial system isolated. */
+.journey-home--dashboard {
+  width: min(1380px, 100%);
+  padding: 0 0 72px;
+}
+
+.journey-home__create--dashboard {
+  margin-top: 32px;
+  scroll-margin-top: 24px;
+  animation: td-arrive 260ms ease both;
+}
+
+@media (max-width: 640px) {
+  .journey-home--dashboard { padding-bottom: 48px; }
+  .journey-home__create--dashboard { margin-top: 20px; }
+}

@@ -626,117 +626,7 @@ export function CreateEntryForm({
           </div>
         </div>
 
-        <label htmlFor={fieldId("story")}>Story *</label>
-        <textarea
-          id={fieldId("story")}
-          value={form.story}
-          onChange={(event) => update('story', event.target.value)}
-          placeholder="What happened? What made this moment worth remembering?"
-          rows={7}
-          required
-          disabled={isSubmitting}
-        />
-
-        <button
-          type="button"
-          className="secondary-button entry-details-toggle"
-          onClick={() => setShowAdditionalDetails((current) => !current)}
-          disabled={isSubmitting}
-          aria-expanded={showAdditionalDetails}
-        >
-          {showAdditionalDetails ? '− Hide additional details' : '+ Add more details'}
-        </button>
-
-        {showAdditionalDetails && (
-          <div className="entry-details">
-            <div className="date-grid">
-              <div>
-                <label htmlFor={fieldId("time")}>Time</label>
-                <input
-                  id={fieldId("time")}
-                  type="time"
-                  value={form.time}
-                  onChange={(event) => update('time', event.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            <label htmlFor={fieldId("highlight")}>Highlight</label>
-            <input
-              id={fieldId("highlight")}
-              value={form.highlight}
-              onChange={(event) => update('highlight', event.target.value)}
-              placeholder="The best sunset of the entire trip."
-              disabled={isSubmitting}
-            />
-          </div>
-        )}
-      </div>
-
-      {showAdditionalDetails && (
-        <div className="entry-details entry-details--sections">
-      <div className="entry-section">
-        <div className="entry-section__title">
-          <span>Rating</span>
-          <span className="field-hint">How I'd remember it</span>
-        </div>
-
-        <div className="rating-picker" aria-label="Rating from 1 to 5 stars">
-          {[1, 2, 3, 4, 5].map((rating) => (
-            <button
-              key={rating}
-              type="button"
-              className={form.rating && form.rating >= rating ? 'rating-star rating-star--active' : 'rating-star'}
-              onClick={() => update('rating', form.rating === rating ? undefined : rating)}
-              disabled={isSubmitting}
-              aria-label={`${rating} star${rating === 1 ? '' : 's'}`}
-              aria-pressed={form.rating === rating}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="entry-section">
-        <label htmlFor={fieldId("memory-type")}>Memory type</label>
-        <select
-          id={fieldId("memory-type")}
-          value={form.memoryType}
-          onChange={(event) => update('memoryType', event.target.value as MemoryType | '')}
-          disabled={isSubmitting}
-        >
-          <option value="">Choose a type</option>
-          {memoryTypes.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor={fieldId("people")}>People I was with</label>
-        <input
-          id={fieldId("people")}
-          value={peopleText}
-          onChange={(event) => setPeopleText(event.target.value)}
-          placeholder="Sarah, Ahmed, Mom"
-          disabled={isSubmitting}
-        />
-        <p className="field-hint">Separate names with commas.</p>
-
-        <label htmlFor={fieldId("tags")}>Tags</label>
-        <input
-          id={fieldId("tags")}
-          value={tagsText}
-          onChange={(event) => setTagsText(event.target.value)}
-          placeholder="sunset, family, food"
-          disabled={isSubmitting}
-        />
-        <p className="field-hint">Separate tags with commas.</p>
-      </div>
-
-      <div className="entry-section">
+        <div className="entry-section">
         <div className="entry-section__title">
           <span>Location</span>
           <span className="field-hint">Optional</span>
@@ -852,86 +742,7 @@ export function CreateEntryForm({
         )}
       </div>
 
-      <div className="entry-section">
-        <div className="entry-section__title">
-          <span>Costs</span>
-          <span className="field-hint">Optional</span>
-        </div>
-
-        {form.costs.map((cost, index) => (
-          <div className="cost-row" key={`${index}-${cost.category}`}>
-            <select
-              value={cost.category}
-              onChange={(event) =>
-                updateCost(index, 'category', event.target.value)
-              }
-              disabled={isSubmitting}
-              aria-label="Cost category"
-            >
-              {costCategories.map((category) => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={cost.amount || ''}
-              onChange={(event) =>
-                updateCost(index, 'amount', Number(event.target.value))
-              }
-              placeholder="0.00"
-              disabled={isSubmitting}
-              aria-label="Cost amount"
-            />
-
-            <input
-              value={cost.currency}
-              onChange={(event) =>
-                updateCost(index, 'currency', event.target.value.toUpperCase().slice(0, 3))
-              }
-              placeholder="CAD"
-              maxLength={3}
-              disabled={isSubmitting}
-              aria-label="Currency"
-            />
-
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  costs: current.costs.filter((_, costIndex) => costIndex !== index),
-                }))
-              }
-              disabled={isSubmitting}
-              aria-label="Remove cost"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() =>
-            setForm((current) => ({
-              ...current,
-              costs: [...current.costs, blankCost()],
-            }))
-          }
-          disabled={isSubmitting}
-        >
-          + Add cost
-        </button>
-      </div>
-
-      <div className="entry-section entry-section--photo">
+<div className="entry-section entry-section--photo">
         <div className="entry-section__title">
           <span>Anchor Photo</span>
           <span className="field-hint">One representative photo for this memory</span>
@@ -1057,7 +868,199 @@ export function CreateEntryForm({
           </span>
         </div>
       </div>
+
+<label htmlFor={fieldId("people")}>People I was with</label>
+        <input
+          id={fieldId("people")}
+          value={peopleText}
+          onChange={(event) => setPeopleText(event.target.value)}
+          placeholder="Sarah, Ahmed, Mom"
+          disabled={isSubmitting}
+        />
+        <p className="field-hint">Separate names with commas.</p>
+
+<label htmlFor={fieldId("story")}>Story *</label>
+        <textarea
+          id={fieldId("story")}
+          value={form.story}
+          onChange={(event) => update('story', event.target.value)}
+          placeholder="What happened? What made this moment worth remembering?"
+          rows={7}
+          required
+          disabled={isSubmitting}
+        />
+
+        <button
+          type="button"
+          className="secondary-button entry-details-toggle"
+          onClick={() => setShowAdditionalDetails((current) => !current)}
+          disabled={isSubmitting}
+          aria-expanded={showAdditionalDetails}
+        >
+          {showAdditionalDetails ? '− Hide additional details' : '+ Add more details'}
+        </button>
+
+        {showAdditionalDetails && (
+          <div className="entry-details">
+            <div className="date-grid">
+              <div>
+                <label htmlFor={fieldId("time")}>Time</label>
+                <input
+                  id={fieldId("time")}
+                  type="time"
+                  value={form.time}
+                  onChange={(event) => update('time', event.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <label htmlFor={fieldId("highlight")}>Highlight</label>
+            <input
+              id={fieldId("highlight")}
+              value={form.highlight}
+              onChange={(event) => update('highlight', event.target.value)}
+              placeholder="The best sunset of the entire trip."
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
+      </div>
+
+      {showAdditionalDetails && (
+        <div className="entry-details entry-details--sections">
+      <div className="entry-section">
+        <div className="entry-section__title">
+          <span>Rating</span>
+          <span className="field-hint">How I'd remember it</span>
         </div>
+
+        <div className="rating-picker" aria-label="Rating from 1 to 5 stars">
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <button
+              key={rating}
+              type="button"
+              className={form.rating && form.rating >= rating ? 'rating-star rating-star--active' : 'rating-star'}
+              onClick={() => update('rating', form.rating === rating ? undefined : rating)}
+              disabled={isSubmitting}
+              aria-label={`${rating} star${rating === 1 ? '' : 's'}`}
+              aria-pressed={form.rating === rating}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="entry-section">
+        <label htmlFor={fieldId("memory-type")}>Memory type</label>
+        <select
+          id={fieldId("memory-type")}
+          value={form.memoryType}
+          onChange={(event) => update('memoryType', event.target.value as MemoryType | '')}
+          disabled={isSubmitting}
+        >
+          <option value="">Choose a type</option>
+          {memoryTypes.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+
+
+        <label htmlFor={fieldId("tags")}>Tags</label>
+        <input
+          id={fieldId("tags")}
+          value={tagsText}
+          onChange={(event) => setTagsText(event.target.value)}
+          placeholder="sunset, family, food"
+          disabled={isSubmitting}
+        />
+        <p className="field-hint">Separate tags with commas.</p>
+      </div>
+
+
+      <div className="entry-section">
+        <div className="entry-section__title">
+          <span>Costs</span>
+          <span className="field-hint">Optional</span>
+        </div>
+
+        {form.costs.map((cost, index) => (
+          <div className="cost-row" key={`${index}-${cost.category}`}>
+            <select
+              value={cost.category}
+              onChange={(event) =>
+                updateCost(index, 'category', event.target.value)
+              }
+              disabled={isSubmitting}
+              aria-label="Cost category"
+            >
+              {costCategories.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={cost.amount || ''}
+              onChange={(event) =>
+                updateCost(index, 'amount', Number(event.target.value))
+              }
+              placeholder="0.00"
+              disabled={isSubmitting}
+              aria-label="Cost amount"
+            />
+
+            <input
+              value={cost.currency}
+              onChange={(event) =>
+                updateCost(index, 'currency', event.target.value.toUpperCase().slice(0, 3))
+              }
+              placeholder="CAD"
+              maxLength={3}
+              disabled={isSubmitting}
+              aria-label="Currency"
+            />
+
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() =>
+                setForm((current) => ({
+                  ...current,
+                  costs: current.costs.filter((_, costIndex) => costIndex !== index),
+                }))
+              }
+              disabled={isSubmitting}
+              aria-label="Remove cost"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() =>
+            setForm((current) => ({
+              ...current,
+              costs: [...current.costs, blankCost()],
+            }))
+          }
+          disabled={isSubmitting}
+        >
+          + Add cost
+        </button>
+      </div>
+
+              </div>
       )}
 
       {error && (

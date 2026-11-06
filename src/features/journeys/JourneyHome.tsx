@@ -33,7 +33,7 @@ export function JourneyHome({
   selectedJourneyIdRef.current = selectedJourneyId;
   const [error, setError] = useState<string | null>(null);
   const [selectedEntryViewMode, setSelectedEntryViewMode] =
-    useState<EntryViewMode>('compact');
+    useState<EntryViewMode>('cards');
   const hasRestoredNavigationRef = useRef(false);
 
   const loadJourneys = useCallback(async () => {
@@ -188,7 +188,7 @@ export function JourneyHome({
                     savedNavigation.page === 'journey' &&
                     savedNavigation.journeyId === journey.id
                       ? savedNavigation.entryViewMode
-                      : 'compact';
+                      : 'cards';
 
                   setSelectedEntryViewMode(nextViewMode);
                   saveJourneyNavigationState(user.uid, {

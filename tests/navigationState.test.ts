@@ -104,7 +104,7 @@ describe('Journey navigation persistence', () => {
     });
   });
 
-  it('uses Compact when the stored view is unrecognised', () => {
+  it('uses Cards when the stored view is unrecognised', () => {
     const storage = createStorage();
     storage.setItem(
       'travel-lore:navigation:v1:user-1',
@@ -119,7 +119,26 @@ describe('Journey navigation persistence', () => {
     expect(readJourneyNavigationState('user-1', storage)).toEqual({
       page: 'journey',
       journeyId: 'journey-1',
-      entryViewMode: 'compact',
+      entryViewMode: 'cards',
+    });
+  });
+
+  it('migrates a previously saved Compact view to Cards', () => {
+    const storage = createStorage();
+    storage.setItem(
+      'travel-lore:navigation:v1:user-1',
+      JSON.stringify({
+        version: 1,
+        page: 'journey',
+        journeyId: 'journey-1',
+        entryViewMode: 'compact',
+      }),
+    );
+
+    expect(readJourneyNavigationState('user-1', storage)).toEqual({
+      page: 'journey',
+      journeyId: 'journey-1',
+      entryViewMode: 'cards',
     });
   });
 

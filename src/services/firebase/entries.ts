@@ -18,6 +18,7 @@ import type {
   EntryCost,
   EntryLocation,
   EntryPhoto,
+  EntryGeography,
   MemoryType,
 } from '../../types/domain';
 
@@ -106,6 +107,15 @@ export const buildEntryDocument = (
         ...(input.location.mapboxPlaceId?.trim()
           ? { mapboxPlaceId: input.location.mapboxPlaceId.trim() }
           : {}),
+        ...(input.location.countryName?.trim() &&
+        /^[A-Z]{2}$/.test(input.location.countryCode ?? '') &&
+        input.location.countrySource === 'mapbox-search-box'
+          ? {
+              countryName: input.location.countryName.trim(),
+              countryCode: input.location.countryCode,
+              countrySource: input.location.countrySource,
+            }
+          : {}),
       }
     : undefined;
 
@@ -158,6 +168,9 @@ const mapEntry = (id: string, journeyId: string, data: DocumentData): Entry => (
   memoryType: data.memoryType as MemoryType | undefined,
   tags: Array.isArray(data.tags) ? data.tags as string[] : [],
   location: data.location as EntryLocation | undefined,
+  geography: data.geography && typeof data.geography === 'object'
+    ? data.geography as EntryGeography
+    : undefined,
   photo: data.photo as EntryPhoto | undefined,
   costs: Array.isArray(data.costs) ? data.costs as EntryCost[] : [],
   createdBy: data.createdBy as string,
@@ -210,6 +223,15 @@ const buildEntryUpdate = (input: UpdateEntryInput) => {
           : {}),
         ...(input.location.mapboxPlaceId?.trim()
           ? { mapboxPlaceId: input.location.mapboxPlaceId.trim() }
+          : {}),
+        ...(input.location.countryName?.trim() &&
+        /^[A-Z]{2}$/.test(input.location.countryCode ?? '') &&
+        input.location.countrySource === 'mapbox-search-box'
+          ? {
+              countryName: input.location.countryName.trim(),
+              countryCode: input.location.countryCode,
+              countrySource: input.location.countrySource,
+            }
           : {}),
       }
     : undefined;

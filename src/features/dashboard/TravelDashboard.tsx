@@ -1,8 +1,15 @@
 import type { Entry, Journey } from '../../types/domain';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { calculateCountryVisits } from './countryVisitCalculations';
+import { CountryMemoryCollection } from './CountryMemoryCollection';
+
+const CountryVisitsMap = lazy(async () => {
+  const module = await import('./CountryVisitsMap');
+  return { default: module.CountryVisitsMap };
+});
 import {
-  calculateDaysCovered,
-  calculateNamedPeopleCount,
-  calculateRecordedPlaceCount,
+  calculateDashboardCoreStats,
+  calculatePeopleSummary,
 } from './dashboardCalculations';
 import './dashboard.css';
 
@@ -45,60 +52,70 @@ export function TravelDashboard({
     b.endDate.localeCompare(a.endDate),
   );
 
-  const daysCovered = calculateDaysCovered(journeys);
-  const recordedPlaces = calculateRecordedPlaceCount(entries);
-  const namedPeople = calculateNamedPeopleCount(entries);
-  const peopleCloud = new Map<string, { label: string; count: number }>();
-  for (const entry of entries) {
-    for (const person of entry.people) {
-      const key = person.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-      if (!key) continue;
-      const existing = peopleCloud.get(key);
-      peopleCloud.set(key, {
-        label: existing?.label ?? person.trim().replace(/\s+/g, ' '),
-        count: (existing?.count ?? 0) + 1,
-      });
-    }
-  }
-  const allPeople = [...peopleCloud.values()].sort((a, b) =>
-    a.label.localeCompare(b.label),
-  );
+  const coreStats = calculateDashboardCoreStats(journeys, entries, currentUserId);
+  const countryVisits = useMemo(() => calculateCountryVisits(entries), [entries]);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
+  const selectedCountry = countryVisits.find((country) => country.code === selectedCountryCode) ?? null;
+  const { daysCovered, recordedPlaces, namedPeople, memories } = coreStats;
+  const allPeople = calculatePeopleSummary(entries);
   const featuredPeople = [...allPeople]
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
     .slice(0, 24);
 
   return (
     <main className="travel-dashboard">
-      <section className="td-hero" aria-labelledby="td-title">
-        <div className="td-hero__copy">
-          <p className="td-kicker"><span /> YOUR TRAVEL STORY</p>
-          <h1 id="td-title">The world,<br /><em>as you lived it.</em></h1>
-          <p className="td-hero__intro">
-            Every journey leaves a mark. Every memory brings a place back to life.
-          </p>
-          <a className="td-hero__link" href="#td-journeys">
-            Explore your journeys <span aria-hidden="true">↓</span>
-          </a>
-        </div>
-
-        <div className="td-hero__visual">
-          <div className="td-hero__photo-wrap">
-            <img
-              className="td-hero__photo"
-              src={featuredMemory?.photo?.url ?? `${import.meta.env.BASE_URL}travel-lore-hero.jpg`}
-              alt={featuredMemory ? featuredMemory.photo?.caption || featuredMemory.title : 'A glimpse of the world through Travel Lore'}
-            />
-            <div className="td-hero__photo-shade" />
-            <div className="td-hero__photo-caption">
-              <span>{featuredMemory ? (featuredMemory.createdBy === currentUserId ? 'YOUR MEMORY' : 'SHARED MEMORY') : 'EVERY PLACE HAS A STORY'}</span>
-              <strong>{featuredMemory?.photo?.caption || featuredMemory?.title || 'Your next story is waiting.'}</strong>
-              {featuredMemory && <small>{formatDate(featuredMemory.date)}</small>}
+      {!isLoading && (
+        <section className="td-countries" id="td-countries" aria-labelledby="td-countries-title">
+          <div className="td-heading-row">
+            <div>
+              <p className="td-kicker">YOUR WORLD</p>
+              <h2 id="td-countries-title">Countries <em>you have explored.</em></h2>
+            </div>
+            <span className="td-heading-aside">{countryVisits.length} {countryVisits.length === 1 ? 'COUNTRY' : 'COUNTRIES'} WITH RECORDED MEMORIES</span>
+          </div>
+          <div className="td-country-layout">
+            <div className="td-country-map-panel">
+              <Suspense fallback={<div className="td-country-map__fallback">Loading world map…</div>}>
+                <CountryVisitsMap countries={countryVisits} selectedCountryCode={selectedCountryCode} onSelectCountry={setSelectedCountryCode} />
+              </Suspense>
+            </div>
+            <div className="td-country-report">
+              <div className="td-country-report__heading"><h3>Countries recorded</h3><span>{countryVisits.length} total</span></div>
+              {countryVisits.length === 0 ? (
+                <div className="td-country-empty td-country-empty--report">
+                  <span aria-hidden="true">◎</span>
+                  <h3>Your map is waiting to take shape.</h3>
+                  <p>Countries appear when a Memory has saved Mapbox country information. Older Memories are not guessed.</p>
+                </div>
+              ) : (
+                <div className="td-country-list">
+                  {countryVisits.map((country) => (
+                    <button className={`td-country-row${selectedCountryCode === country.code ? ' is-selected' : ''}`} key={country.code} type="button" aria-pressed={selectedCountryCode === country.code} onClick={() => setSelectedCountryCode(selectedCountryCode === country.code ? null : country.code)}>
+                      <span className="td-country-row__name"><strong>{country.name}</strong><small>{country.code}</small></span>
+                      <span className="td-country-row__metrics"><strong>{country.memoryCount}</strong><small>Memories</small></span>
+                      <span className="td-country-row__metrics"><strong>{country.journeyCount}</strong><small>Journeys</small></span>
+                      <span className="td-country-row__metrics"><strong>{country.photoCount}</strong><small>Photos</small></span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <span className="td-hero__sunburst" aria-hidden="true">✳</span>
-          <span className="td-hero__side-note" aria-hidden="true">COLLECT MOMENTS · NOT MILES</span>
-        </div>
-      </section>
+          {selectedCountry && (
+            <div className="td-country-detail" aria-live="polite">
+              <div className="td-country-detail__heading">
+                <div>
+                  <p className="td-kicker">COUNTRY DETAILS · {selectedCountry.code}</p>
+                  <h3>{selectedCountry.name}</h3>
+                  <p>{selectedCountry.memoryCount} Memories · {selectedCountry.journeyCount} Journeys · {selectedCountry.photoCount} photos</p>
+                </div>
+                <button type="button" onClick={() => setSelectedCountryCode(null)}>Clear selection ×</button>
+              </div>
+              <CountryMemoryCollection country={selectedCountry} journeys={journeys} onOpenJourney={onOpenJourney} />
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="td-stats" aria-label="Your travel at a glance">
         <div className="td-section-heading">
@@ -114,7 +131,7 @@ export function TravelDashboard({
         <div className="td-stats__grid">
           <article className="td-stat td-stat--coral">
             <span className="td-stat__symbol" aria-hidden="true">✳</span>
-            <strong>{isLoading ? '—' : journeys.length}</strong>
+            <strong>{isLoading ? '—' : coreStats.journeyCount}</strong>
             <span>Journeys</span>
           </article>
           <article className="td-stat td-stat--gold">
@@ -124,7 +141,7 @@ export function TravelDashboard({
           </article>
           <article className="td-stat td-stat--teal">
             <span className="td-stat__symbol" aria-hidden="true">▧</span>
-            <strong>{isLoading ? '—' : entries.length}</strong>
+            <strong>{isLoading ? '—' : memories.total}</strong>
             <span>Memories across your Journeys</span>
           </article>
           <article className="td-stat td-stat--lilac">
@@ -132,10 +149,16 @@ export function TravelDashboard({
             <strong>{isLoading ? '—' : recordedPlaces}</strong>
             <span>Recorded places</span>
           </article>
+          <article className="td-stat td-stat--blue">
+            <span className="td-stat__symbol" aria-hidden="true">◎</span>
+            <strong>{isLoading ? '—' : countryVisits.length}</strong>
+            <span>Countries visited</span>
+          </article>
         </div>
         {!isLoading && journeys.length > 0 && (
           <p className="td-stats__note">
             Days are calendar dates covered by your Journey records, with overlapping dates counted once. They are not verified days physically travelling.
+            {' '}Of {memories.total} Memories, {memories.authoredByCurrentUser} {memories.authoredByCurrentUser === 1 ? 'was' : 'were'} created by you and {memories.authoredByOthers} by other Journey members.
           </p>
         )}
       </section>
@@ -171,13 +194,14 @@ export function TravelDashboard({
         </section>
       )}
 
+
       <section className="td-journeys" id="td-journeys" aria-labelledby="td-journeys-title">
         <div className="td-heading-row td-heading-row--journeys">
           <div>
             <p className="td-kicker">THE COLLECTION</p>
             <h2 id="td-journeys-title">Journeys <em>worth remembering.</em></h2>
           </div>
-          <span className="td-journey-count">{isLoading ? 'Loading…' : `${journeys.length} ${journeys.length === 1 ? 'journey' : 'journeys'}`}</span>
+          <span className="td-journey-count">{isLoading ? 'Loading…' : `${coreStats.journeyCount} ${coreStats.journeyCount === 1 ? 'journey' : 'journeys'}`}</span>
         </div>
 
         {isLoading ? (
@@ -228,7 +252,7 @@ export function TravelDashboard({
               {featuredPeople.map((person, index) => (
                 <span
                   className={`td-word-cloud__name td-word-cloud__name--${(index % 5) + 1}`}
-                  key={person.label.toLocaleLowerCase()}
+                  key={person.key}
                   style={{ fontSize: `${Math.min(1.85, 0.88 + person.count * 0.16)}rem` }}
                   title={`${person.label}: ${person.count} ${person.count === 1 ? 'Memory' : 'Memories'}`}
                 >
@@ -241,7 +265,7 @@ export function TravelDashboard({
               <summary>See all {namedPeople} names</summary>
               <ul>
                 {allPeople.map((person) => (
-                  <li key={person.label.toLocaleLowerCase()}>
+                  <li key={person.key}>
                     <span>{person.label}</span>
                     <small>{person.count} {person.count === 1 ? 'Memory' : 'Memories'}</small>
                   </li>

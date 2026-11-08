@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry, Journey } from '../src/types/domain';
 import {
+  calculateDashboardCoreStats,
   calculateDaysCovered,
+  calculateMemoryCounts,
   calculateNamedPeopleCount,
+  calculatePeopleSummary,
   calculateRecordedPlaceCount,
 } from '../src/features/dashboard/dashboardCalculations';
 
@@ -67,5 +70,50 @@ describe('dashboard calculations', () => {
       entry({ people: ['Amina', ' Samir  Khan '] }),
       entry({ id: 'entry-2', people: ['amina', 'Samir Khan', 'Leila'] }),
     ])).toBe(3);
+  });
+
+  it('returns normalized people summaries without guessing aliases', () => {
+    expect(calculatePeopleSummary([
+      entry({ people: [' Amina  Khan ', 'amina khan', 'A. Khan'] }),
+    ])).toEqual([
+      { key: 'a. khan', label: 'A. Khan', count: 1 },
+      { key: 'amina khan', label: 'Amina Khan', count: 1 },
+    ]);
+  });
+
+  it('separates Memory authorship and deduplicates repeated journey-memory records', () => {
+    const ownMemory = entry({ id: 'same-id', journeyId: 'journey-1', createdBy: 'user-1' });
+    const sharedMemory = entry({ id: 'shared-id', journeyId: 'journey-1', createdBy: 'user-2' });
+    const sameDocumentIdInAnotherJourney = entry({ id: 'same-id', journeyId: 'journey-2', createdBy: 'user-2' });
+
+    expect(calculateMemoryCounts([
+      ownMemory,
+      ownMemory,
+      sharedMemory,
+      sameDocumentIdInAnotherJourney,
+    ], 'user-1')).toEqual({
+      total: 3,
+      authoredByCurrentUser: 1,
+      authoredByOthers: 2,
+    });
+  });
+
+  it('calculates core stats from all supplied Journeys and Memories', () => {
+    const result = calculateDashboardCoreStats(
+      [journey('2026-10-01', '2026-10-03'), journey('2026-10-03', '2026-10-05')],
+      [
+        entry({ id: 'mine', createdBy: 'user-1' }),
+        entry({ id: 'theirs', journeyId: 'journey-2', createdBy: 'user-2', people: ['Leila'] }),
+      ],
+      'user-1',
+    );
+
+    expect(result).toEqual({
+      journeyCount: 2,
+      daysCovered: 5,
+      memories: { total: 2, authoredByCurrentUser: 1, authoredByOthers: 1 },
+      recordedPlaces: 0,
+      namedPeople: 1,
+    });
   });
 });

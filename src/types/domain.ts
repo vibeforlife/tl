@@ -35,6 +35,10 @@ export interface EntryLocation {
   latitude: number;
   longitude: number;
   mapboxPlaceId?: string;
+  /** Country context returned by the selected Mapbox Search Box feature. */
+  countryName?: string;
+  countryCode?: string;
+  countrySource?: 'mapbox-search-box';
 }
 
 export type MemoryType =
@@ -61,6 +65,19 @@ export interface EntryCost {
   currency: string;
 }
 
+export type EntryGeographyStatus = 'matched' | 'ambiguous' | 'near-boundary' | 'unmatched';
+
+/** Cached country assignment derived from a Memory's saved coordinates. */
+export interface EntryGeography {
+  countryCode: string | null;
+  countryName: string | null;
+  status: EntryGeographyStatus;
+  sourceLatitude: number;
+  sourceLongitude: number;
+  datasetVersion: string;
+  algorithmVersion: string;
+}
+
 export interface EntryPhoto {
   url: string;
   storagePath: string;
@@ -80,6 +97,7 @@ export interface Entry {
   memoryType?: MemoryType;
   tags: string[];
   location?: EntryLocation;
+  geography?: EntryGeography;
   photo?: EntryPhoto;
   costs: EntryCost[];
   createdBy: string;

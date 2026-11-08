@@ -25,6 +25,8 @@ import { createJourneyShareLink } from '../../services/firebase/sharing';
 import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/firebase/storage';
 import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
+import { EntryCard } from '../entries/EntryCard';
+import { filterEntries, sortEntries } from '../entries/entryFiltering';
 import {
   readJourneyScrollPosition,
   saveJourneyScrollPosition,
@@ -43,21 +45,6 @@ const formatDate = (value: string) =>
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(`${value}T00:00:00`));
-
-const formatTime = (value: string | undefined) => {
-  if (!value) return '';
-
-  const [hours, minutes] = value.split(':').map(Number);
-
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(2000, 0, 1, hours, minutes));
-};
 
 const memoryTypeLabels: Record<NonNullable<Entry['memoryType']>, string> = {
   place: 'Place',
@@ -78,27 +65,6 @@ const sortLabels: Record<EntrySortField, string> = {
   title: 'Title',
   location: 'Location',
   type: 'Type',
-};
-
-const getStoryPreview = (story: string) => {
-  const previewLength = 280;
-  if (story.length <= previewLength) return story;
-  return `${story.slice(0, previewLength).trimEnd()}…`;
-};
-
-const formatCostTotal = (entry: Entry) => {
-  const totals = new Map<string, number>();
-
-  for (const cost of entry.costs) {
-    totals.set(
-      cost.currency,
-      (totals.get(cost.currency) || 0) + cost.amount,
-    );
-  }
-
-  return Array.from(totals.entries())
-    .map(([currency, amount]) => `${currency} ${amount.toFixed(2)}`)
-    .join(' · ');
 };
 
 export function JourneyDetail({
@@ -332,89 +298,20 @@ export function JourneyDetail({
     [entries],
   );
 
-  const filteredEntries = useMemo(() => {
-    const query = searchQuery.trim().toLocaleLowerCase();
-    const rating = minRating ? Number(minRating) : 0;
-
-    return entries.filter((entry) => {
-      if (dateFrom && entry.date < dateFrom) return false;
-      if (dateTo && entry.date > dateTo) return false;
-      if (rating && (entry.rating ?? 0) < rating) return false;
-      if (memoryTypeFilter && entry.memoryType !== memoryTypeFilter) return false;
-      if (personFilter && !entry.people.includes(personFilter)) return false;
-      if (tagFilter && !entry.tags.includes(tagFilter)) return false;
-
-      if (query) {
-        const searchableText = [
-          entry.title,
-          entry.story,
-          entry.highlight,
-          entry.location?.name,
-          entry.location?.address,
-          ...entry.people,
-          ...entry.tags,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLocaleLowerCase();
-
-        if (!searchableText.includes(query)) return false;
-      }
-
-      return true;
-    });
-  }, [
+  const filteredEntries = useMemo(() => filterEntries(entries, {
+    searchQuery,
     dateFrom,
     dateTo,
-    entries,
-    memoryTypeFilter,
     minRating,
-    personFilter,
-    searchQuery,
-    tagFilter,
-  ]);
+    memoryType: memoryTypeFilter,
+    person: personFilter,
+    tag: tagFilter,
+  }), [entries, searchQuery, dateFrom, dateTo, minRating, memoryTypeFilter, personFilter, tagFilter]);
 
-  const sortedEntries = useMemo(() => {
-    const nextEntries = [...filteredEntries];
-
-    nextEntries.sort((a, b) => {
-      let comparison = 0;
-
-      switch (entrySortField) {
-        case 'rating':
-          comparison = (a.rating ?? 0) - (b.rating ?? 0);
-          break;
-
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
-          break;
-
-        case 'location':
-          comparison = (a.location?.name ?? '').localeCompare(
-            b.location?.name ?? '',
-          );
-          break;
-
-        case 'type':
-          comparison = (a.memoryType ?? '').localeCompare(
-            b.memoryType ?? '',
-          );
-          break;
-
-        case 'date':
-        default: {
-          const aValue = `${a.date}T${a.time ?? '00:00'}`;
-          const bValue = `${b.date}T${b.time ?? '00:00'}`;
-          comparison = aValue.localeCompare(bValue);
-          break;
-        }
-      }
-
-      return entrySortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return nextEntries;
-  }, [entrySortDirection, entrySortField, filteredEntries]);
+  const sortedEntries = useMemo(
+    () => sortEntries(filteredEntries, entrySortField, entrySortDirection),
+    [filteredEntries, entrySortField, entrySortDirection],
+  );
 
   const albumEntries = useMemo(() => {
     const nextEntries = filteredEntries.filter((entry) =>
@@ -1434,162 +1331,7 @@ export function JourneyDetail({
                   <div className="entry-display-area__cards">
                     <div className="entry-grid">
                       {sortedEntries.map((entry) => (
-                        <article className="entry-card" key={entry.id} data-entry-id={entry.id}>
-                          <div className="entry-card__topline">
-                            <div className="entry-card__date">
-                              <span>{formatDate(entry.date)}</span>
-                              {entry.time && (
-                                <span>· {formatTime(entry.time)}</span>
-                              )}
-                            </div>
-
-                            <div className="entry-card__badges">
-                              {entry.memoryType && (
-                                <span className="entry-card__type">
-                                  {memoryTypeLabels[entry.memoryType]}
-                                </span>
-                              )}
-
-                              {entry.rating && (
-                                <span
-                                  className="entry-card__rating"
-                                  aria-label={`${entry.rating} out of 5 stars`}
-                                >
-                                  {'★'.repeat(entry.rating)}
-                                  {'☆'.repeat(5 - entry.rating)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="entry-card__title-row">
-                            <h3>{entry.title}</h3>
-                            {canEditJourney && (
-                              <span className="entry-actions">
-                                <button
-                                  className="entry-action-button"
-                                  type="button"
-                                  onClick={() => openEditEntry(entry)}
-                                  aria-label={`Edit ${entry.title}`}
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  className="entry-action-button entry-action-button--danger"
-                                  type="button"
-                                  onClick={() => openDeleteEntry(entry)}
-                                  aria-label={`Delete ${entry.title}`}
-                                >
-                                  Delete
-                                </button>
-                              </span>
-                            )}
-                          </div>
-
-                          {entry.location && (
-                            <div className="entry-card__location">
-                              <span
-                                className="entry-card__location-mark"
-                                aria-hidden="true"
-                              >
-                                ◎
-                              </span>
-                              <div>
-                                <strong>{entry.location.name}</strong>
-                                {entry.location.address && (
-                                  <span>{entry.location.address}</span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {entry.story.length > 280 ? (
-                            <details className="entry-card__story-details">
-                              <summary>
-                                <span className="entry-card__story-preview">
-                                  {getStoryPreview(entry.story)}
-                                </span>{' '}
-                                <span className="entry-card__story-read-full">
-                                  Read full story
-                                </span>
-                                <span className="entry-card__story-read-less">
-                                  Read less
-                                </span>
-                              </summary>
-                              <p className="entry-card__story">
-                                {entry.story}
-                              </p>
-                            </details>
-                          ) : (
-                            <p className="entry-card__story">{entry.story}</p>
-                          )}
-
-                          {entry.highlight && (
-                            <blockquote className="entry-card__highlight">
-                              <span className="entry-card__highlight-label">
-                                THE MOMENT
-                              </span>
-                              <p>“{entry.highlight}”</p>
-                            </blockquote>
-                          )}
-
-                          {(entry.people.length > 0 ||
-                            entry.costs.length > 0) && (
-                            <div className="entry-card__details">
-                              {entry.people.length > 0 && (
-                                <div>
-                                  <span className="entry-card__detail-label">
-                                    WITH
-                                  </span>
-                                  <span>{entry.people.join(', ')}</span>
-                                </div>
-                              )}
-
-                              {entry.costs.length > 0 && (
-                                <div>
-                                  <span className="entry-card__detail-label">
-                                    SPENT
-                                  </span>
-                                  <span className="entry-card__cost">
-                                    {formatCostTotal(entry)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {entry.tags.length > 0 && (
-                            <div className="entry-tags">
-                              {entry.tags.map((tag) => (
-                                <span key={tag}>#{tag}</span>
-                              ))}
-                            </div>
-                          )}
-
-                          {entry.photo && (
-                            <div className="entry-card__photos">
-                              <a
-                                className="entry-card__photo"
-                                href={entry.photo.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-label={
-                                  entry.photo.caption || 'Open anchor photo'
-                                }
-                              >
-                                <img
-                                  src={entry.photo.url}
-                                  alt={entry.photo.caption || ''}
-                                  loading="lazy"
-                                />
-                                <span>
-                                  {entry.photo.caption || 'Anchor photo'}
-                                </span>
-                              </a>
-                            </div>
-                          )}
-                        </article>
+                        <EntryCard key={entry.id} entry={entry} canEdit={canEditJourney} onEdit={openEditEntry} onDelete={openDeleteEntry} />
                       ))}
                     </div>
                   </div>

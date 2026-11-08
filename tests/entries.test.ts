@@ -74,6 +74,28 @@ describe('Entry validation', () => {
     ).toBe('Latitude must be between -90 and 90.');
   });
 
+  it('rejects missing coordinates for a named location', () => {
+    expect(
+      validateEntryInput({
+        ...validEntry(),
+        location: {
+          ...validEntry().location!,
+          latitude: Number.NaN,
+        },
+      }),
+    ).toBe('Latitude must be between -90 and 90.');
+
+    expect(
+      validateEntryInput({
+        ...validEntry(),
+        location: {
+          ...validEntry().location!,
+          longitude: Number.NaN,
+        },
+      }),
+    ).toBe('Longitude must be between -180 and 180.');
+  });
+
   it('validates cost currency and amount', () => {
     expect(
       validateEntryInput({

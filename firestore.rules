@@ -24,6 +24,70 @@ service cloud.firestore {
         && journeyRole(journeyId) in ['owner', 'editor'];
     }
 
+    function validEntryLocation(data) {
+      return !('location' in data)
+        || data.location == null
+        || (
+          data.location is map
+          && data.location.keys().hasOnly([
+            'name', 'address', 'latitude', 'longitude', 'mapboxPlaceId',
+            'countryName', 'countryCode', 'countrySource'
+          ])
+          && data.location.name is string
+          && data.location.latitude is number
+          && data.location.longitude is number
+          && data.location.latitude >= -90
+          && data.location.latitude <= 90
+          && data.location.longitude >= -180
+          && data.location.longitude <= 180
+          && (
+            (
+              !('countryName' in data.location)
+              && !('countryCode' in data.location)
+              && !('countrySource' in data.location)
+            )
+            || (
+              'countryName' in data.location
+              && 'countryCode' in data.location
+              && 'countrySource' in data.location
+              && data.location.countryName is string
+              && data.location.countryName.size() > 0
+              && data.location.countryCode is string
+              && data.location.countryCode.matches('[A-Z]{2}')
+              && data.location.countrySource == 'mapbox-search-box'
+            )
+          )
+        );
+    }
+
+    function validEntryGeography(data) {
+      return !('geography' in data)
+        || data.geography == null
+        || (
+          data.geography is map
+          && data.geography.keys().hasOnly([
+            'countryCode', 'countryName', 'status', 'sourceLatitude',
+            'sourceLongitude', 'datasetVersion', 'algorithmVersion'
+          ])
+          && data.geography.status in ['matched', 'ambiguous', 'near-boundary', 'unmatched']
+          && data.geography.sourceLatitude is number
+          && data.geography.sourceLongitude is number
+          && data.geography.sourceLatitude >= -90
+          && data.geography.sourceLatitude <= 90
+          && data.geography.sourceLongitude >= -180
+          && data.geography.sourceLongitude <= 180
+          && data.geography.datasetVersion is string
+          && data.geography.algorithmVersion is string
+          && (
+            data.geography.status != 'matched'
+            || (
+              data.geography.countryCode is string
+              && data.geography.countryName is string
+            )
+          )
+        );
+    }
+
     function isJourneyOwner(journeyId) {
       return journeyMember(journeyId)
         && journeyRole(journeyId) == 'owner';
@@ -126,6 +190,8 @@ service cloud.firestore {
           && request.resource.data.people is list
           && request.resource.data.tags is list
           && request.resource.data.costs is list
+          && validEntryGeography(request.resource.data)
+          && validEntryLocation(request.resource.data)
           && (
             !('photo' in request.resource.data)
             || (
@@ -141,7 +207,9 @@ service cloud.firestore {
           );
 
         allow update: if canEditJourney(journeyId)
-          && request.resource.data.createdBy == resource.data.createdBy;
+          && request.resource.data.createdBy == resource.data.createdBy
+          && validEntryGeography(request.resource.data)
+          && validEntryLocation(request.resource.data);
 
         allow delete: if canEditJourney(journeyId);
       }

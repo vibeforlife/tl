@@ -1,3 +1,4 @@
+import { resolveLocationCoordinates } from './locationCoordinates';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { isEntryDraftDirty } from './entryDirtyState';
 import { SearchBox } from '@mapbox/search-js-react';
@@ -274,6 +275,7 @@ export function CreateEntryForm({
   const buildLocation = (): EntryLocation | undefined => {
     const hasManualLocation =
       manualLocation.name.trim() ||
+      manualLocation.address.trim() ||
       manualLocation.latitude.trim() ||
       manualLocation.longitude.trim();
 
@@ -281,12 +283,28 @@ export function CreateEntryForm({
       return form.location;
     }
 
+    const { latitude, longitude, coordinatesUnchanged } =
+      resolveLocationCoordinates(
+        manualLocation.latitude,
+        manualLocation.longitude,
+        form.location,
+      );
+
     return {
       name: manualLocation.name.trim(),
       address: manualLocation.address.trim() || undefined,
-      latitude: Number(manualLocation.latitude),
-      longitude: Number(manualLocation.longitude),
-      mapboxPlaceId: form.location?.mapboxPlaceId,
+      latitude,
+      longitude,
+      ...(coordinatesUnchanged && form.location?.mapboxPlaceId
+        ? { mapboxPlaceId: form.location.mapboxPlaceId }
+        : {}),
+      ...(coordinatesUnchanged && form.location?.countryName && form.location.countryCode
+        ? {
+            countryName: form.location.countryName,
+            countryCode: form.location.countryCode,
+            countrySource: form.location.countrySource,
+          }
+        : {}),
     };
   };
 
@@ -296,16 +314,31 @@ export function CreateEntryForm({
     if (!feature) return;
 
     const coordinates = feature.geometry.coordinates;
+    const country = feature.properties.context?.country;
+    const countryCode = country?.country_code?.toUpperCase();
+    const countryName = country?.name?.trim();
+    const hasValidCountry = Boolean(
+      countryName && countryCode && /^[A-Z]{2}$/.test(countryCode)
+    );
+
+    const selectedLocation: EntryLocation = {
+      name: feature.properties.name || 'Selected location',
+      address: feature.properties.full_address || feature.properties.place_formatted || undefined,
+      latitude: coordinates[1],
+      longitude: coordinates[0],
+      mapboxPlaceId: feature.properties.mapbox_id,
+      ...(hasValidCountry
+        ? {
+            countryName,
+            countryCode,
+            countrySource: 'mapbox-search-box' as const,
+          }
+        : {}),
+    };
 
     setForm((current) => ({
       ...current,
-      location: {
-        name: feature.properties.name || 'Selected location',
-        address: feature.properties.full_address || feature.properties.place_formatted || undefined,
-        latitude: coordinates[1],
-        longitude: coordinates[0],
-        mapboxPlaceId: feature.properties.mapbox_id,
-      },
+      location: selectedLocation,
     }));
 
     setManualLocation({

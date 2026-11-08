@@ -66,7 +66,7 @@ export const calculateRecordedPlaceCount = (entries: Entry[]): number => {
       continue;
     }
 
-    const name = location.name.trim().toLocaleLowerCase();
+    const name = location.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
     const latitude = Number.isFinite(location.latitude)
       ? location.latitude.toFixed(4)
       : 'unknown';
@@ -79,16 +79,96 @@ export const calculateRecordedPlaceCount = (entries: Entry[]): number => {
   return places.size;
 };
 
-/** Counts distinct entered people names, case-insensitively. Alias matching is not inferred. */
-export const calculateNamedPeopleCount = (entries: Entry[]): number => {
-  const people = new Set<string>();
+const normalizePersonName = (value: string): string =>
+  value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+
+export interface NamedPersonSummary {
+  key: string;
+  label: string;
+  count: number;
+}
+
+/** Returns distinct entered names and Memory frequency; alias matching is never inferred. */
+export const calculatePeopleSummary = (entries: Entry[]): NamedPersonSummary[] => {
+  const people = new Map<string, NamedPersonSummary>();
 
   for (const entry of entries) {
+    const namesInThisMemory = new Set<string>();
     for (const person of entry.people) {
-      const normalized = person.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-      if (normalized) people.add(normalized);
+      const label = person.trim().replace(/\s+/g, ' ');
+      const key = normalizePersonName(label);
+      if (!key || namesInThisMemory.has(key)) continue;
+      namesInThisMemory.add(key);
+
+      const existing = people.get(key);
+      people.set(key, {
+        key,
+        label: existing?.label ?? label,
+        count: (existing?.count ?? 0) + 1,
+      });
     }
   }
 
-  return people.size;
+  return [...people.values()].sort((a, b) =>
+    a.label.localeCompare(b.label),
+  );
 };
+
+export const calculateNamedPeopleCount = (entries: Entry[]): number =>
+  calculatePeopleSummary(entries).length;
+
+export interface MemoryCounts {
+  total: number;
+  authoredByCurrentUser: number;
+  authoredByOthers: number;
+}
+
+/** Counts unique Memories by journey + document ID and preserves author attribution. */
+export const calculateMemoryCounts = (
+  entries: Entry[],
+  currentUserId: string,
+): MemoryCounts => {
+  const uniqueEntries = new Map<string, Entry>();
+
+  for (const entry of entries) {
+    uniqueEntries.set(`${entry.journeyId}:${entry.id}`, entry);
+  }
+
+  let authoredByCurrentUser = 0;
+  let authoredByOthers = 0;
+
+  for (const entry of uniqueEntries.values()) {
+    if (entry.createdBy === currentUserId) {
+      authoredByCurrentUser += 1;
+    } else {
+      authoredByOthers += 1;
+    }
+  }
+
+  return {
+    total: uniqueEntries.size,
+    authoredByCurrentUser,
+    authoredByOthers,
+  };
+};
+
+export interface DashboardCoreStats {
+  journeyCount: number;
+  daysCovered: number;
+  memories: MemoryCounts;
+  recordedPlaces: number;
+  namedPeople: number;
+}
+
+/** Calculates dashboard totals from the Journeys and accessible Memories supplied by the caller. */
+export const calculateDashboardCoreStats = (
+  journeys: Journey[],
+  entries: Entry[],
+  currentUserId: string,
+): DashboardCoreStats => ({
+  journeyCount: new Set(journeys.map((journey) => journey.id)).size,
+  daysCovered: calculateDaysCovered(journeys),
+  memories: calculateMemoryCounts(entries, currentUserId),
+  recordedPlaces: calculateRecordedPlaceCount(entries),
+  namedPeople: calculateNamedPeopleCount(entries),
+});

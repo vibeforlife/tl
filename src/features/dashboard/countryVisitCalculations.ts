@@ -10,30 +10,37 @@ export interface CountryVisitSummary {
   journeyIds: string[];
 }
 
-const validCountry = (entry: Entry): { code: string; name: string } | null => {
+export const getEntryCountry = (entry: Entry): { code: string; name: string; source: 'mapbox' | 'manual' } | null => {
   const location = entry.location;
+  const mapboxValid = Boolean(
+    location?.countrySource === 'mapbox-search-box' &&
+    typeof location.countryName === 'string' && location.countryName.trim() &&
+    typeof location.countryCode === 'string' && /^[A-Z]{2}$/.test(location.countryCode),
+  );
+  if (mapboxValid) {
+    return { code: location!.countryCode!.toUpperCase(), name: location!.countryName!.trim(), source: 'mapbox' };
+  }
+  const manual = entry.manualCountry;
   if (
-    !location ||
-    location.countrySource !== 'mapbox-search-box' ||
-    typeof location.countryName !== 'string' ||
-    !location.countryName.trim() ||
-    typeof location.countryCode !== 'string' ||
-    !/^[A-Z]{2}$/.test(location.countryCode)
-  ) return null;
-
-  // The user chose saved Mapbox country metadata as authoritative when sources conflict.
-  // Cached EntryGeography is therefore not used to override this assignment.
-  return { code: location.countryCode.toUpperCase(), name: location.countryName.trim() };
+    manual?.source === 'manual' &&
+    typeof manual.countryName === 'string' && manual.countryName.trim() &&
+    typeof manual.countryCode === 'string' && /^[A-Z]{2}$/.test(manual.countryCode)
+  ) {
+    return { code: manual.countryCode.toUpperCase(), name: manual.countryName.trim(), source: 'manual' };
+  }
+  return null;
 };
 
-/** Uses only explicitly saved Mapbox country context; never infers from text or coordinates. */
+export const isEntryCountryAssigned = (entry: Entry): boolean => getEntryCountry(entry) !== null;
+
+/** Uses explicit Mapbox country context first, then user-confirmed manual assignments; never infers from text or coordinates. */
 export const calculateCountryVisits = (entries: Entry[]): CountryVisitSummary[] => {
   const unique = new Map<string, Entry>();
   for (const entry of entries) unique.set(`${entry.journeyId}:${entry.id}`, entry);
 
   const countries = new Map<string, CountryVisitSummary>();
   for (const entry of unique.values()) {
-    const country = validCountry(entry);
+    const country = getEntryCountry(entry);
     if (!country) continue;
 
     const current = countries.get(country.code) ?? {

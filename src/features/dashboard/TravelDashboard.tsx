@@ -1,7 +1,8 @@
 import type { Entry, Journey } from '../../types/domain';
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { calculateCountryVisits } from './countryVisitCalculations';
+import { calculateCountryVisits, isEntryCountryAssigned } from './countryVisitCalculations';
 import { CountryMemoryCollection } from './CountryMemoryCollection';
+import { UnassignedMemoryCollection } from './UnassignedMemoryCollection';
 
 const CountryVisitsMap = lazy(async () => {
   const module = await import('./CountryVisitsMap');
@@ -20,6 +21,7 @@ type TravelDashboardProps = {
   currentUserId: string;
   onOpenJourney: (journeyId: string) => void;
   onCreateJourney: () => void;
+  onEntriesUpdated: () => Promise<void>;
 };
 
 const formatDate = (value: string) => {
@@ -42,6 +44,7 @@ export function TravelDashboard({
   currentUserId,
   onOpenJourney,
   onCreateJourney,
+  onEntriesUpdated,
 }: TravelDashboardProps) {
   const photoMemories = [...entries]
     .filter((entry) => entry.photo?.url)
@@ -56,6 +59,8 @@ export function TravelDashboard({
   const countryVisits = useMemo(() => calculateCountryVisits(entries), [entries]);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const selectedCountry = countryVisits.find((country) => country.code === selectedCountryCode) ?? null;
+  const unassignedEntries = useMemo(() => entries.filter((entry) => !isEntryCountryAssigned(entry)), [entries]);
+  const [showUnassigned, setShowUnassigned] = useState(false);
   const { daysCovered, recordedPlaces, namedPeople, memories } = coreStats;
   const allPeople = calculatePeopleSummary(entries);
   const featuredPeople = [...allPeople]
@@ -85,12 +90,12 @@ export function TravelDashboard({
                 <div className="td-country-empty td-country-empty--report">
                   <span aria-hidden="true">◎</span>
                   <h3>Your map is waiting to take shape.</h3>
-                  <p>Countries appear when a Memory has saved Mapbox country information. Older Memories are not guessed.</p>
+                  <p>Countries appear when a Memory has saved Mapbox country information or a manual country assignment. Countries are never guessed from titles or Journey names.</p>
                 </div>
               ) : (
                 <div className="td-country-list">
                   {countryVisits.map((country) => (
-                    <button className={`td-country-row${selectedCountryCode === country.code ? ' is-selected' : ''}`} key={country.code} type="button" aria-pressed={selectedCountryCode === country.code} onClick={() => setSelectedCountryCode(selectedCountryCode === country.code ? null : country.code)}>
+                    <button className={`td-country-row${selectedCountryCode === country.code ? ' is-selected' : ''}`} key={country.code} type="button" aria-pressed={selectedCountryCode === country.code} onClick={() => { setShowUnassigned(false); setSelectedCountryCode(selectedCountryCode === country.code ? null : country.code); }}>
                       <span className="td-country-row__name"><strong>{country.name}</strong><small>{country.code}</small></span>
                       <span className="td-country-row__metrics"><strong>{country.memoryCount}</strong><small>Memories</small></span>
                       <span className="td-country-row__metrics"><strong>{country.journeyCount}</strong><small>Journeys</small></span>
@@ -99,8 +104,39 @@ export function TravelDashboard({
                   ))}
                 </div>
               )}
+              <div className="td-country-list">
+                <button
+                  className={`td-country-row td-country-row--unassigned${showUnassigned ? ' is-selected' : ''}`}
+                  type="button"
+                  aria-pressed={showUnassigned}
+                  onClick={() => { setShowUnassigned((current) => !current); setSelectedCountryCode(null); }}
+                >
+                  <span className="td-country-row__name"><strong>Unassigned</strong><small>NEEDS A COUNTRY</small></span>
+                  <span className="td-country-row__metrics"><strong>{unassignedEntries.length}</strong><small>Memories</small></span>
+                  <span className="td-country-row__action">Review &amp; assign ↗</span>
+                </button>
+              </div>
             </div>
           </div>
+          {showUnassigned && (
+            <div className="td-country-detail" aria-live="polite">
+              <div className="td-country-detail__heading">
+                <div>
+                  <p className="td-kicker">COUNTRY DETAILS · MANUAL REVIEW</p>
+                  <h3>Unassigned Memories</h3>
+                  <p>{unassignedEntries.length} Memories without a recorded country</p>
+                </div>
+                <button type="button" onClick={() => setShowUnassigned(false)}>Close ×</button>
+              </div>
+              <UnassignedMemoryCollection
+                entries={unassignedEntries}
+                journeys={journeys}
+                userId={currentUserId}
+                onOpenJourney={onOpenJourney}
+                onUpdated={onEntriesUpdated}
+              />
+            </div>
+          )}
           {selectedCountry && (
             <div className="td-country-detail" aria-live="polite">
               <div className="td-country-detail__heading">

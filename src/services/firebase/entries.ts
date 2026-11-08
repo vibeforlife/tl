@@ -19,6 +19,7 @@ import type {
   EntryLocation,
   EntryPhoto,
   EntryGeography,
+  EntryManualCountry,
   MemoryType,
 } from '../../types/domain';
 
@@ -171,6 +172,9 @@ const mapEntry = (id: string, journeyId: string, data: DocumentData): Entry => (
   geography: data.geography && typeof data.geography === 'object'
     ? data.geography as EntryGeography
     : undefined,
+  manualCountry: data.manualCountry && typeof data.manualCountry === 'object'
+    ? data.manualCountry as EntryManualCountry
+    : undefined,
   photo: data.photo as EntryPhoto | undefined,
   costs: Array.isArray(data.costs) ? data.costs as EntryCost[] : [],
   createdBy: data.createdBy as string,
@@ -283,6 +287,36 @@ export const updateEntry = async (
   await updateDoc(
     doc(db, 'journeys', journeyId, 'entries', entryId),
     buildEntryUpdate(input),
+  );
+};
+
+export const assignEntryCountryManually = async (
+  journeyId: string,
+  entryId: string,
+  userId: string,
+  country: { countryCode: string; countryName: string },
+): Promise<void> => {
+  const countryCode = country.countryCode.trim().toUpperCase();
+  const countryName = country.countryName.trim();
+
+  if (!/^[A-Z]{2}$/.test(countryCode) || !countryName) {
+    throw new Error('Choose a valid country.');
+  }
+  if (!userId.trim()) {
+    throw new Error('You must be signed in to assign a country.');
+  }
+
+  const manualCountry = {
+    countryCode,
+    countryName,
+    source: 'manual',
+    assignedBy: userId,
+    assignedAt: serverTimestamp(),
+  };
+
+  await updateDoc(
+    doc(db, 'journeys', journeyId, 'entries', entryId),
+    { manualCountry, updatedAt: serverTimestamp() },
   );
 };
 

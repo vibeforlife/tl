@@ -60,6 +60,25 @@ service cloud.firestore {
         );
     }
 
+    function validEntryManualCountry(data) {
+      return !('manualCountry' in data)
+        || data.manualCountry == null
+        || (
+          data.manualCountry is map
+          && data.manualCountry.keys().hasOnly([
+            'countryCode', 'countryName', 'source', 'assignedBy', 'assignedAt'
+          ])
+          && data.manualCountry.countryCode is string
+          && data.manualCountry.countryCode.matches('[A-Z]{2}')
+          && data.manualCountry.countryName is string
+          && data.manualCountry.countryName.size() > 0
+          && data.manualCountry.source == 'manual'
+          && data.manualCountry.assignedBy is string
+          && data.manualCountry.assignedBy.size() > 0
+          && data.manualCountry.assignedAt is timestamp
+        );
+    }
+
     function validEntryGeography(data) {
       return !('geography' in data)
         || data.geography == null
@@ -192,6 +211,8 @@ service cloud.firestore {
           && request.resource.data.costs is list
           && validEntryGeography(request.resource.data)
           && validEntryLocation(request.resource.data)
+          && validEntryManualCountry(request.resource.data)
+          && (!('manualCountry' in request.resource.data) || request.resource.data.manualCountry == null || request.resource.data.manualCountry.assignedBy == request.auth.uid)
           && (
             !('photo' in request.resource.data)
             || (
@@ -209,7 +230,23 @@ service cloud.firestore {
         allow update: if canEditJourney(journeyId)
           && request.resource.data.createdBy == resource.data.createdBy
           && validEntryGeography(request.resource.data)
-          && validEntryLocation(request.resource.data);
+          && validEntryLocation(request.resource.data)
+          && validEntryManualCountry(request.resource.data)
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['manualCountry'])
+            || (
+              request.resource.data.manualCountry.assignedBy == request.auth.uid
+              && !(
+                'location' in request.resource.data
+                && request.resource.data.location is map
+                && request.resource.data.location.countrySource == 'mapbox-search-box'
+                && request.resource.data.location.countryName is string
+                && request.resource.data.location.countryName.size() > 0
+                && request.resource.data.location.countryCode is string
+                && request.resource.data.location.countryCode.matches('[A-Z]{2}')
+              )
+            )
+          );
 
         allow delete: if canEditJourney(journeyId);
       }

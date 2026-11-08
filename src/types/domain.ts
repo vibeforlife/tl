@@ -78,6 +78,14 @@ export interface EntryGeography {
   algorithmVersion: string;
 }
 
+export interface EntryManualCountry {
+  countryCode: string;
+  countryName: string;
+  source: 'manual';
+  assignedBy: string;
+  assignedAt: Timestamp;
+}
+
 export interface EntryPhoto {
   url: string;
   storagePath: string;
@@ -98,6 +106,7 @@ export interface Entry {
   tags: string[];
   location?: EntryLocation;
   geography?: EntryGeography;
+  manualCountry?: EntryManualCountry;
   photo?: EntryPhoto;
   costs: EntryCost[];
   createdBy: string;

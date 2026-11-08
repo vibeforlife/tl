@@ -530,3 +530,41 @@
   .tl-country-journey__heading { align-items: flex-start; }
   .tl-country-entry-grid .entry-card { padding: 17px; }
 }
+
+
+/* Manual country assignment from the Unassigned collection. */
+.td-country-row--unassigned { border-top: 1px solid rgba(242,199,92,.22); }
+.td-country-row--unassigned .td-country-row__name strong { color: var(--td-gold); }
+.td-country-row__action { color: var(--td-teal); font-size: .65rem; white-space: nowrap; }
+.tl-country-unassigned-list { display: grid; gap: 14px; }
+.tl-country-unassigned-item { display: grid; gap: 10px; }
+.tl-country-assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 1px solid rgba(242,199,92,.22);
+  border-radius: 5px;
+  background: rgba(242,199,92,.035);
+}
+.tl-country-assign label { display: grid; flex: 1 1 220px; gap: 5px; color: rgba(243,238,227,.65); font-size: .68rem; }
+.tl-country-assign select {
+  width: 100%; min-height: 39px; padding: 8px 10px;
+  border: 1px solid rgba(243,238,227,.2); border-radius: 4px;
+  color: var(--td-cream); background: #172b34; font: inherit; font-size: .75rem;
+}
+.tl-country-assign button {
+  min-height: 39px; padding: 8px 15px; border: 1px solid rgba(72,214,199,.45);
+  border-radius: 4px; color: #09252b; background: var(--td-teal);
+  font: inherit; font-size: .72rem; font-weight: 700; cursor: pointer;
+}
+.tl-country-assign button:disabled { opacity: .45; cursor: not-allowed; }
+.tl-country-assign p { flex: 1 0 100%; margin: 0; color: #ffaaa0; font-size: .7rem; }
+.tl-unassigned-notice { color: var(--td-teal); font-size: .75rem; }
+@media (max-width: 680px) {
+  .td-country-row--unassigned { grid-template-columns: minmax(80px,1fr) auto; }
+  .td-country-row__action { grid-column: 1 / -1; }
+  .tl-country-assign { align-items: stretch; }
+  .tl-country-assign button { width: 100%; }
+}

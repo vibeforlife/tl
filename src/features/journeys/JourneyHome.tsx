@@ -34,6 +34,13 @@ export function JourneyHome({
     useState<EntryViewMode>('cards');
   const hasRestoredNavigationRef = useRef(false);
 
+  const refreshEntries = useCallback(async () => {
+    const entryGroups = await Promise.all(
+      journeys.map((journey) => listJourneyEntries(journey.id)),
+    );
+    setEntries(entryGroups.flat());
+  }, [journeys]);
+
   const loadJourneys = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -149,6 +156,7 @@ export function JourneyHome({
         isLoading={isLoading}
         currentUserId={user.uid}
         onCreateJourney={() => setIsCreateJourneyOpen(true)}
+        onEntriesUpdated={refreshEntries}
         onOpenJourney={(journeyId) => {
           const savedNavigation = readJourneyNavigationState(user.uid);
           const nextViewMode =

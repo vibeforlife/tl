@@ -30,4 +30,13 @@ describe('dashboard presentation contracts', () => {
     expect(component).toContain('<details className="td-people-all">');
     expect(component).toContain('See all {namedPeople} names');
   });
+
+  it('opens a person quick view with recent Memories and a full-profile route', () => {
+    const component = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
+
+    expect(component).toContain('td-person-popup');
+    expect(component).toContain('selectedDashboardMemories');
+    expect(component).toContain('onOpenMemory(entry)');
+    expect(component).toContain('View full profile');
+  });
 });

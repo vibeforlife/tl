@@ -576,3 +576,75 @@
 .td-country-map-panel { width: 100%; }
 .td-country-report { width: 100%; }
 @media (max-width: 680px) { .td-dashboard-actions { justify-content: stretch; } .td-dashboard-actions .td-create-journey-trigger { width: 100%; } }
+
+
+/* Dashboard person quick view */
+.td-person-popup-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0,7,12,.76);
+  backdrop-filter: blur(8px);
+}
+.td-person-popup {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: min(680px, 88vh);
+  overflow-y: auto;
+  padding: 30px;
+  border: 1px solid rgba(64,199,189,.28);
+  border-radius: 18px;
+  color: #f3f0e8;
+  background: linear-gradient(145deg,#102433,#07141e 72%);
+  box-shadow: 0 24px 80px rgba(0,0,0,.48);
+}
+.td-person-popup h2 { margin: 7px 42px 4px 0; overflow-wrap: anywhere; }
+.td-person-popup__count { margin: 0 0 20px; color: rgba(243,240,232,.55); font-size: .82rem; }
+.td-person-popup__close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  color: #f3f0e8;
+  background: rgba(255,255,255,.05);
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+.td-person-popup__memories { display: grid; gap: 8px; }
+.td-person-popup__memories button {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  color: inherit;
+  background: rgba(255,255,255,.035);
+  text-align: left;
+  cursor: pointer;
+}
+.td-person-popup__memories button:hover { border-color: rgba(64,199,189,.45); background: rgba(64,199,189,.07); }
+.td-person-popup__memories button span { color: rgba(243,240,232,.52); font-size: .75rem; }
+.td-person-popup__profile {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 10px 15px;
+  border: 1px solid rgba(64,199,189,.42);
+  border-radius: 999px;
+  color: #40c7bd;
+  background: transparent;
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.td-person-popup button:focus-visible { outline: 2px solid var(--td-gold); outline-offset: 3px; }
+@media (max-width: 520px) {
+  .td-person-popup { padding: 25px 18px 20px; }
+}

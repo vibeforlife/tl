@@ -56,5 +56,11 @@ export const calculateCountryVisits = (entries: Entry[]): CountryVisitSummary[] 
     }
     countries.set(country.code, current);
   }
-  return [...countries.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const mostRecentMemoryDate = (country: CountryVisitSummary): string =>
+    country.entries.reduce((latest, entry) => entry.date > latest ? entry.date : latest, '');
+
+  return [...countries.values()].sort((a, b) =>
+    mostRecentMemoryDate(b).localeCompare(mostRecentMemoryDate(a)) ||
+    a.name.localeCompare(b.name),
+  );
 };

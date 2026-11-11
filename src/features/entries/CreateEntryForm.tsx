@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { isEntryDraftDirty } from './entryDirtyState';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
-import { listMyPeople } from '../../services/firebase/people';
+import { createPersonProfile, listMyPeople } from '../../services/firebase/people';
 import { PersonMultiSelect } from './PersonMultiSelect';
 import {
   createEntry,
@@ -281,6 +281,22 @@ export function CreateEntryForm({
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
     setError(null);
+  };
+
+  const createPersonFromMemory = async (name: string) => {
+    const personId = await createPersonProfile(user.uid, { name, aliases: [] });
+    const personRef = {
+      personId,
+      ownerId: user.uid,
+      displayName: name,
+    };
+    try {
+      setPeopleProfiles(await listMyPeople(user.uid));
+      setPeopleLoadError(null);
+    } catch {
+      setPeopleLoadError('The new person was added to this Memory, but the People list could not be refreshed.');
+    }
+    return personRef;
   };
 
   const buildLocation = (): EntryLocation | undefined => {
@@ -913,7 +929,8 @@ export function CreateEntryForm({
           people={peopleProfiles}
           selected={form.peopleRefs ?? []}
           onChange={(peopleRefs) => update('peopleRefs', peopleRefs)}
-          disabled={isSubmitting || Boolean(peopleLoadError)}
+          onCreatePerson={createPersonFromMemory}
+          disabled={isSubmitting}
         />
         {peopleLoadError && <p className="field-error" role="alert">{peopleLoadError}</p>}
 

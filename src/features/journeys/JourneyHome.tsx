@@ -151,21 +151,23 @@ export function JourneyHome({
     });
   };
 
+  const openMemoryFromPeople = (entry: Entry) => {
+    setIsPeopleDirectoryOpen(false);
+    setSelectedPersonKey(null);
+    setInitialEntryId(entry.id);
+    clearJourneyScrollPosition(user.uid, entry.journeyId);
+    saveJourneyNavigationState(user.uid, { page: 'journey', journeyId: entry.journeyId, entryViewMode: 'cards' });
+    setSelectedEntryViewMode('cards');
+    setSelectedJourneyId(entry.journeyId);
+  };
+
   if (isPeopleDirectoryOpen) return (
     <PeopleDirectory
       user={user}
       entries={entries}
       initialSelectedPersonKey={selectedPersonKey}
       onBack={() => { setIsPeopleDirectoryOpen(false); setSelectedPersonKey(null); }}
-      onOpenMemory={(entry) => {
-        setIsPeopleDirectoryOpen(false);
-        setSelectedPersonKey(null);
-        setInitialEntryId(entry.id);
-        clearJourneyScrollPosition(user.uid, entry.journeyId);
-        saveJourneyNavigationState(user.uid, { page: 'journey', journeyId: entry.journeyId, entryViewMode: 'cards' });
-        setSelectedEntryViewMode('cards');
-        setSelectedJourneyId(entry.journeyId);
-      }}
+      onOpenMemory={openMemoryFromPeople}
     />
   );
 
@@ -213,6 +215,7 @@ export function JourneyHome({
         currentUserId={user.uid}
         onCreateJourney={openCreateJourney}
         onEntriesUpdated={refreshEntries}
+        onOpenMemory={openMemoryFromPeople}
         onSelectPerson={(personKey) => {
           if (editingEntryDirtyRef.current && !window.confirm('You have unsaved changes to this memory. Discard them before opening People?')) return;
           editingEntryDirtyRef.current = false;

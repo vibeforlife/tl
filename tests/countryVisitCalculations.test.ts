@@ -81,10 +81,11 @@ describe('country visit calculations', () => {
     ])).toEqual([]);
   });
 
-  it('sorts the report alphabetically by country name', () => {
+  it('sorts countries by most recent Memory date, with alphabetical ties', () => {
     expect(calculateCountryVisits([
-      withCountry('JP', 'Japan', { id: 'memory-jp' }),
-      withCountry('CA', 'Canada', { id: 'memory-ca' }),
-    ]).map((country) => country.name)).toEqual(['Canada', 'Japan']);
+      withCountry('CA', 'Canada', { id: 'memory-ca', date: '2026-01-01' }),
+      withCountry('JP', 'Japan', { id: 'memory-jp', date: '2026-03-10' }),
+      withCountry('FR', 'France', { id: 'memory-fr', date: '2026-03-10' }),
+    ]).map((country) => country.name)).toEqual(['France', 'Japan', 'Canada']);
   });
 });

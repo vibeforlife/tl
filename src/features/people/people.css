@@ -50,3 +50,50 @@
 .td-people-all li button { display:flex; width:100%; justify-content:space-between; gap:12px; padding:0; border:0; color:inherit; background:transparent; font:inherit; text-align:left; cursor:pointer; }
 .td-people-all li button:hover span { color:var(--td-teal); }
 .td-people-all li button:focus-visible { outline:2px solid var(--td-gold); outline-offset:3px; }
+
+
+/* Split directory: browse on the left, selected profile and Memories on the right. */
+.people-directory__workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, .82fr) minmax(0, 1.45fr);
+  gap: 20px;
+  align-items: start;
+}
+.people-directory__list-panel,
+.people-directory__profile-panel {
+  min-width: 0;
+  min-height: 320px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  background: rgba(5,15,24,.48);
+}
+.people-directory__grid { grid-template-columns: 1fr; }
+.people-directory__profile-panel { position: sticky; top: 24px; }
+.people-profile-empty { display: grid; min-height: 270px; align-content: center; justify-items: start; }
+.people-profile-empty h2 { margin: 8px 0; }
+.people-profile-empty p:last-child,
+.people-profile__aliases,
+.people-profile__count { color: rgba(243,240,232,.55); }
+.people-profile__notes { margin: 18px 0; color: rgba(243,240,232,.76); white-space: pre-wrap; line-height: 1.65; }
+.people-profile__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.people-profile__mobile-back { display: none; }
+.people-memories__heading { align-items: flex-start; }
+.people-memories__heading h2 { overflow-wrap: anywhere; }
+.people-directory__toolbar { margin-bottom: 18px; }
+.people-directory__toolbar input:focus-visible,
+.people-directory__toolbar button:focus-visible { outline: 2px solid #40c7bd; outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .people-directory__workspace { grid-template-columns: 1fr; }
+  .people-directory__profile-panel { position: static; }
+  .people-directory__workspace.has-selection .people-directory__list-panel { display: none; }
+  .people-directory__workspace:not(.has-selection) .people-directory__profile-panel { display: none; }
+  .people-directory--profile-open .people-directory__toolbar { display: none; }
+  .people-profile__mobile-back { display: inline-flex; margin-bottom: 20px; padding: 7px 0; border: 0; color: #40c7bd; background: transparent; cursor: pointer; }
+}
+@media (max-width: 520px) {
+  .people-directory__list-panel,
+  .people-directory__profile-panel { padding: 14px; }
+  .people-profile__actions { width: 100%; }
+}

@@ -1,5 +1,5 @@
 import type { Entry, Journey } from '../../types/domain';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { calculateCountryVisits, isEntryCountryAssigned } from './countryVisitCalculations';
 import { CountryMemoryCollection } from './CountryMemoryCollection';
 import { UnassignedMemoryCollection } from './UnassignedMemoryCollection';
@@ -21,6 +21,7 @@ type TravelDashboardProps = {
   currentUserId: string;
   onOpenJourney: (journeyId: string) => void;
   onSelectPerson: (personKey: string) => void;
+  onOpenMemory: (entry: Entry) => void;
   onCreateJourney: () => void;
   onEntriesUpdated: () => Promise<void>;
 };
@@ -45,6 +46,7 @@ export function TravelDashboard({
   currentUserId,
   onOpenJourney,
   onSelectPerson,
+  onOpenMemory,
   onCreateJourney,
   onEntriesUpdated,
 }: TravelDashboardProps) {
@@ -63,11 +65,28 @@ export function TravelDashboard({
   const selectedCountry = countryVisits.find((country) => country.code === selectedCountryCode) ?? null;
   const unassignedEntries = useMemo(() => entries.filter((entry) => !isEntryCountryAssigned(entry)), [entries]);
   const [showUnassigned, setShowUnassigned] = useState(false);
+  const [selectedDashboardPersonKey, setSelectedDashboardPersonKey] = useState<string | null>(null);
   const { daysCovered, recordedPlaces, namedPeople, memories } = coreStats;
   const allPeople = calculatePeopleSummary(entries);
   const featuredPeople = [...allPeople]
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
     .slice(0, 24);
+  const selectedDashboardPerson = allPeople.find((person) => person.key === selectedDashboardPersonKey) ?? null;
+  const selectedDashboardMemories = selectedDashboardPerson
+    ? entries
+      .filter((entry) => entry.peopleRefs.some((person) => `${person.ownerId}:${person.personId}` === selectedDashboardPerson.key))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 4)
+    : [];
+
+  useEffect(() => {
+    if (!selectedDashboardPersonKey) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedDashboardPersonKey(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [selectedDashboardPersonKey]);
 
   return (
     <main className="travel-dashboard">
@@ -295,7 +314,7 @@ export function TravelDashboard({
                   key={person.key}
                   type="button"
                   style={{ fontSize: `${Math.min(1.85, 0.88 + person.count * 0.16)}rem` }}
-                  onClick={() => onSelectPerson(person.key)}
+                  onClick={() => setSelectedDashboardPersonKey(person.key)}
                   title={`${person.label}: ${person.count} ${person.count === 1 ? 'Memory' : 'Memories'}`}
                 >
                   {person.label}
@@ -308,7 +327,7 @@ export function TravelDashboard({
               <ul>
                 {allPeople.map((person) => (
                   <li key={person.key}>
-                    <button type="button" onClick={() => onSelectPerson(person.key)}>
+                    <button type="button" onClick={() => setSelectedDashboardPersonKey(person.key)}>
                       <span>{person.label}</span>
                       <small>{person.count} {person.count === 1 ? 'Memory' : 'Memories'}</small>
                     </button>
@@ -318,6 +337,38 @@ export function TravelDashboard({
             </details>
           </div>
         </section>
+      )}
+
+      {selectedDashboardPerson && (
+        <div className="td-person-popup-backdrop" role="presentation" onClick={() => setSelectedDashboardPersonKey(null)}>
+          <section
+            className="td-person-popup"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="td-person-popup-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="td-person-popup__close" type="button" aria-label="Close person preview" onClick={() => setSelectedDashboardPersonKey(null)}>×</button>
+            <p className="td-kicker">A PERSON IN YOUR STORIES</p>
+            <h2 id="td-person-popup-title">{selectedDashboardPerson.label}</h2>
+            <p className="td-person-popup__count">{selectedDashboardPerson.count} associated {selectedDashboardPerson.count === 1 ? 'Memory' : 'Memories'}</p>
+            <div className="td-person-popup__memories">
+              {selectedDashboardMemories.length === 0 ? <p>No linked Memories found.</p> : selectedDashboardMemories.map((entry) => (
+                <button
+                  type="button"
+                  key={`${entry.journeyId}:${entry.id}`}
+                  onClick={() => { setSelectedDashboardPersonKey(null); onOpenMemory(entry); }}
+                >
+                  <strong>{entry.title}</strong>
+                  <span>{formatDate(entry.date)}{entry.location?.name ? ` · ${entry.location.name}` : ''}</span>
+                </button>
+              ))}
+            </div>
+            <button className="td-person-popup__profile" type="button" onClick={() => { const key = selectedDashboardPerson.key; setSelectedDashboardPersonKey(null); onSelectPerson(key); }}>
+              View full profile <span aria-hidden="true">↗</span>
+            </button>
+          </section>
+        </div>
       )}
 
       <footer className="td-footer">

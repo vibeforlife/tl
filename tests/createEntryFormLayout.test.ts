@@ -70,4 +70,9 @@ describe('CreateEntryForm layout contract', () => {
     expect(source.match(/<span>Anchor Photo<\/span>/g)).toHaveLength(1);
     expect(source.match(/fieldId\("people"\)/g)).toHaveLength(2);
   });
+
+  it('supports creating and selecting a person directly from the Memory form', () => {
+    expect(source).toContain('createPersonProfile(user.uid, { name, aliases: [] })');
+    expect(source).toContain('onCreatePerson={createPersonFromMemory}');
+  });
 });

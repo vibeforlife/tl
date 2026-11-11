@@ -1,6 +1,6 @@
 # Travel Lore — Engineering Handoff
 
-Last updated: September 9, 2026
+Last updated: November 10, 2026
 
 ## Project
 
@@ -10,6 +10,22 @@ Core product idea:
 - Journeys contain entries/memories.
 - A journey represents a trip/place/time period.
 - The product should feel like a premium digital travel journal rather than a generic SaaS dashboard.
+
+## People & Memory UI — decisions locked (November 10, 2026)
+
+The six UI decisions are recorded as the implementation contract in
+`TRAVEL_LORE_UI_WORK_PLAN.md`:
+
+1. Country lists are ordered by each country's most recent Memory date, newest first, with alphabetical ties.
+2. The Memory People selector is searchable by name and aliases.
+3. The desktop People Directory uses a list/detail split view.
+4. Dashboard person clicks open a quick-view popup, with a separate route to the full profile.
+5. On mobile, the People Directory replaces the list with the selected profile and provides a back action.
+6. Add/Edit Memory supports minimal inline name-only person creation and automatically associates the new profile with that Memory.
+
+Implementation must preserve country provenance rules, reuse the existing People service, retain deletion/association-cleanup behaviour, and leave legacy `people[]` data untouched unless separately verified. See the UI work plan for acceptance checks.
+
+Implementation status for this handoff: a focused source patch has been prepared against the uploaded November 10 source snapshot. TypeScript/TSX syntax parsing passed for the changed source and test files. Full Vitest, ESLint, TypeScript project build, and browser checks remain pending because project dependencies were not available in the patch workspace. Run the full checks in the local project after applying the patch; do not commit until they pass and the desktop/mobile UI has been reviewed.
 
 ## Current repository
 
@@ -73,13 +89,13 @@ The workflow:
 - uploads `dist`
 - deploys through GitHub Pages
 
-## Current build status
+## Last documented build status (historical)
 
-Production build passes:
+The prior handoff recorded a passing production build:
 
 `npm run build`
 
-Current Vite warning:
+That result predates the November 10 source snapshot and has not been re-verified in this workspace. The prior Vite warning:
 - JavaScript bundle is approximately 927 KB minified.
 - This is a performance warning only.
 - It is NOT currently a build failure.
@@ -337,15 +353,11 @@ Make that exceptional before adding lots of secondary features.
 
 The product should feel like a place where someone wants to return to remember a trip, not merely a database for recording trips.
 
-## Current working tree at handoff
+## Working-tree caution
 
-Expected modified files before this handoff commit:
+The November 10 source archive intentionally excludes `.git`, so the exact current Git status and commit ancestry cannot be independently verified from that archive. The included `.travel-lore-audit/people-feature-completion-audit-20261110-143333.txt` records a working tree with numerous pre-existing modified and untracked files.
 
-- `src/design/theme.css`
-- `src/features/journeys/CreateJourneyForm.tsx`
-- `src/features/journeys/JourneyHome.tsx`
-
-This handoff document itself will also be added by the checkpoint commit.
+Do not reset, clean, stash, or overwrite the working tree to apply this UI work. Check `git status --short --branch` in the local project first, preserve all existing changes, and apply only the explicitly reviewed patch. Do not commit or push unless explicitly requested.
 
 ## DO NOT
 

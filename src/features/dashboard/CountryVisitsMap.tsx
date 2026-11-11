@@ -8,7 +8,6 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 const SOURCE_ID = 'travel-lore-country-boundaries';
 const FILL_LAYER_ID = 'travel-lore-country-fills';
 const LINE_LAYER_ID = 'travel-lore-country-borders';
-const WORLD_BOUNDS: [[number, number], [number, number]] = [[-180, -85], [180, 85]];
 
 type Props = {
   countries: CountryVisitSummary[];
@@ -27,35 +26,19 @@ function collectCoordinates(value: unknown, output: Coordinate[]) {
   value.forEach((child) => collectCoordinates(child, output));
 }
 
-function fitVisitedCountries(
-  map: mapboxgl.Map,
-  codes: string[],
-  features: Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>,
-  duration: number,
-) {
-  const visited = new Set(codes);
-  const coordinates: Coordinate[] = [];
+function fitWorld(map: mapboxgl.Map, duration: number): boolean {
+  // Mapbox can initialize before the dashboard's flex layout has reached its
+  // final height. Do not fit the world into a temporarily short container.
+  map.resize();
+  const container = map.getContainer();
+  if (container.clientWidth <= 0 || container.clientHeight < 200) return false;
 
-  features.forEach((feature) => {
-    const code = feature.properties?.TL_COUNTRY_CODE;
-    if (!code || !visited.has(String(code))) return;
-    collectCoordinates(feature.geometry?.coordinates, coordinates);
-  });
-
-  if (coordinates.length === 0) {
-    map.fitBounds(WORLD_BOUNDS, { padding: 24, duration, maxZoom: 1.15 });
-    return;
-  }
-
-  const bounds = coordinates.reduce(
-    (result, coordinate) => result.extend(coordinate),
-    new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]),
-  );
-  map.fitBounds(bounds, {
-    padding: { top: 48, bottom: 48, left: 48, right: 48 },
+  map.fitBounds([[-179.5, -85], [179.5, 85]], {
+    padding: 24,
     duration,
-    maxZoom: 2.35,
+    maxZoom: 0.5,
   });
+  return true;
 }
 
 function fitCountry(map: mapboxgl.Map, code: string) {
@@ -87,6 +70,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
   const visitedCodesRef = useRef(visitedCodes);
   const selectedCountryRef = useRef(selectedCountryCode);
   const countryFeaturesRef = useRef<Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>>([]);
+  const hasInitialWorldFitRef = useRef(false);
 
   useEffect(() => { onSelectRef.current = onSelectCountry; }, [onSelectCountry]);
   useEffect(() => { visitedCodesRef.current = visitedCodes; }, [visitedCodes]);
@@ -101,7 +85,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
       projection: 'mercator',
       center: [0, 15],
       zoom: 0.8,
-      minZoom: 0.65,
+      minZoom: -1.5,
       maxZoom: 5,
       renderWorldCopies: false,
     });
@@ -146,8 +130,8 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
         map.once('idle', () => {
           if (selectedCountryRef.current) {
             fitCountry(map, selectedCountryRef.current);
-          } else {
-            fitVisitedCountries(map, visitedCodesRef.current, countryFeaturesRef.current, 0);
+          } else if (fitWorld(map, 0)) {
+            hasInitialWorldFitRef.current = true;
           }
         });
       } catch (error) {
@@ -155,7 +139,22 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
       }
     });
 
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => map.resize());
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      map.resize();
+
+      // If the map loaded before its responsive/flex layout settled, perform
+      // the initial world fit on the first real-sized observation only.
+      if (
+        !hasInitialWorldFitRef.current &&
+        !selectedCountryRef.current &&
+        map.getSource(SOURCE_ID) &&
+        containerRef.current &&
+        containerRef.current.clientHeight >= 200 &&
+        fitWorld(map, 0)
+      ) {
+        hasInitialWorldFitRef.current = true;
+      }
+    });
     if (observer && containerRef.current) observer.observe(containerRef.current);
     const onWindowResize = () => map.resize();
     if (!observer) window.addEventListener('resize', onWindowResize);
@@ -185,8 +184,8 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
     if (!map || !map.getSource(SOURCE_ID)) return;
     if (selectedCountryCode) {
       fitCountry(map, selectedCountryCode);
-    } else {
-      fitVisitedCountries(map, visitedCodesRef.current, countryFeaturesRef.current, 550);
+    } else if (fitWorld(map, 550)) {
+      hasInitialWorldFitRef.current = true;
     }
   }, [selectedCountryCode, visitedCodesKey]);
 

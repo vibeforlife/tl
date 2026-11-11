@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { isEntryDraftDirty } from './entryDirtyState';
 import { SearchBox } from '@mapbox/search-js-react';
 import type { User } from 'firebase/auth';
+import { listMyPeople } from '../../services/firebase/people';
+import { PersonMultiSelect } from './PersonMultiSelect';
 import {
   createEntry,
   deleteEntry,
@@ -22,6 +24,7 @@ import type {
   EntryLocation,
   EntryPhoto,
   MemoryType,
+  Person,
 } from '../../types/domain';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -138,7 +141,7 @@ export function CreateEntryForm({
     story: '',
     highlight: '',
     rating: undefined,
-    people: [],
+    peopleRefs: [],
     memoryType: '',
     tags: [],
     location: undefined,
@@ -146,7 +149,8 @@ export function CreateEntryForm({
     costs: [],
   });
 
-  const [peopleText, setPeopleText] = useState('');
+  const [peopleProfiles, setPeopleProfiles] = useState<Person[]>([]);
+  const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
   const [tagsText, setTagsText] = useState('');
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [pendingPhotoPreviewUrl, setPendingPhotoPreviewUrl] = useState<string | null>(null);
@@ -168,6 +172,16 @@ export function CreateEntryForm({
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   const isEditing = Boolean(entry);
+
+  useEffect(() => {
+    let active = true;
+    listMyPeople(user.uid).then((profiles) => {
+      if (active) { setPeopleProfiles(profiles); setPeopleLoadError(null); }
+    }).catch(() => {
+      if (active) setPeopleLoadError('People profiles could not be loaded. You can still save other Memory details; try reopening this form to load people.');
+    });
+    return () => { active = false; };
+  }, [user.uid]);
 
   useEffect(() => {
     if (!pendingPhotoFile) {
@@ -202,7 +216,7 @@ export function CreateEntryForm({
       story: entry.story,
       highlight: entry.highlight ?? '',
       rating: entry.rating,
-      people: entry.people,
+      peopleRefs: entry.peopleRefs ?? [],
       memoryType: entry.memoryType ?? '',
       tags: entry.tags,
       location: entry.location,
@@ -210,7 +224,6 @@ export function CreateEntryForm({
       costs: entry.costs,
     });
 
-    setPeopleText(entry.people.join(', '));
     setTagsText(entry.tags.join(', '));
     setPendingPhotoFile(null);
     setPhotoProcessingState('idle');
@@ -243,7 +256,6 @@ export function CreateEntryForm({
     const dirty = isEntryDraftDirty(
       entry,
       form,
-      peopleText,
       tagsText,
       manualLocation,
       photoCaption,
@@ -255,7 +267,6 @@ export function CreateEntryForm({
   }, [
     entry,
     form,
-    peopleText,
     tagsText,
     manualLocation,
     photoCaption,
@@ -357,11 +368,6 @@ export function CreateEntryForm({
 
     if (isSubmitting) return;
 
-    const people = peopleText
-      .split(',')
-      .map((person) => person.trim())
-      .filter(Boolean);
-
     const tags = tagsText
       .split(',')
       .map((tag) => tag.trim())
@@ -371,7 +377,7 @@ export function CreateEntryForm({
 
     const nextForm: CreateEntryInput = {
       ...form,
-      people,
+      peopleRefs: form.peopleRefs ?? [],
       tags,
       location,
     };
@@ -513,14 +519,13 @@ export function CreateEntryForm({
           story: '',
           highlight: '',
           rating: undefined,
-          people: [],
+          peopleRefs: [],
           memoryType: '',
           tags: [],
           location: undefined,
           photo: undefined,
           costs: [],
         });
-        setPeopleText('');
         setTagsText('');
         setPendingPhotoFile(null);
         setPhotoProcessingState('idle');
@@ -903,14 +908,14 @@ export function CreateEntryForm({
       </div>
 
 <label htmlFor={fieldId("people")}>People I was with</label>
-        <input
+        <PersonMultiSelect
           id={fieldId("people")}
-          value={peopleText}
-          onChange={(event) => setPeopleText(event.target.value)}
-          placeholder="Sarah, Ahmed, Mom"
-          disabled={isSubmitting}
+          people={peopleProfiles}
+          selected={form.peopleRefs ?? []}
+          onChange={(peopleRefs) => update('peopleRefs', peopleRefs)}
+          disabled={isSubmitting || Boolean(peopleLoadError)}
         />
-        <p className="field-hint">Separate names with commas.</p>
+        {peopleLoadError && <p className="field-error" role="alert">{peopleLoadError}</p>}
 
 <label htmlFor={fieldId("story")}>Story *</label>
         <textarea

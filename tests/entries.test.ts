@@ -13,7 +13,7 @@ const validEntry = (): CreateEntryInput => ({
   story: 'The sunset was unforgettable.',
   highlight: 'The best sunset of the trip.',
   rating: 5,
-  people: ['Sarah', 'Ahmed'],
+  peopleRefs: [],
   memoryType: 'moment',
   tags: ['sunset', 'family'],
   location: {

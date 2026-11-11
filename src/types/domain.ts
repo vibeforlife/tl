@@ -86,6 +86,25 @@ export interface EntryManualCountry {
   assignedAt: Timestamp;
 }
 
+/** A private profile owned by one Travel Lore account. */
+export interface Person {
+  id: string;
+  ownerId: string;
+  name: string;
+  normalizedName?: string;
+  aliases: string[];
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Safe, shared reference stored on a Memory; never contains private profile fields. */
+export interface MemoryPerson {
+  personId: string;
+  ownerId: string;
+  displayName: string;
+}
+
 export interface EntryPhoto {
   url: string;
   storagePath: string;
@@ -101,7 +120,7 @@ export interface Entry {
   story: string;
   highlight?: string;
   rating?: number;
-  people: string[];
+  peopleRefs: MemoryPerson[];
   memoryType?: MemoryType;
   tags: string[];
   location?: EntryLocation;

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Entry, Journey } from '../../types/domain';
 import type { CountryVisitSummary } from './countryVisitCalculations';
-import { filterEntries, sortEntries, type EntrySortField } from '../entries/entryFiltering';
+import { filterEntries, getEntryPeopleOptions, sortEntries, type EntrySortField } from '../entries/entryFiltering';
 import { EntryCard } from '../entries/EntryCard';
 
 type Props = {
@@ -37,7 +37,7 @@ export function CountryMemoryCollection({ country, journeys, onOpenJourney }: Pr
   const [viewMode, setViewMode] = useState<'cards' | 'album'>('cards');
 
   const availablePeople = useMemo(
-    () => [...new Set(country.entries.flatMap((entry) => entry.people))].sort((a, b) => a.localeCompare(b)),
+    () => getEntryPeopleOptions(country.entries),
     [country.entries],
   );
   const availableTags = useMemo(
@@ -119,7 +119,7 @@ export function CountryMemoryCollection({ country, journeys, onOpenJourney }: Pr
         <label><span>To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
         <label><span>Minimum rating</span><select value={minRating} onChange={(event) => setMinRating(event.target.value)}><option value="">Any rating</option>{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}+ stars</option>)}</select></label>
         <label><span>Memory type</span><select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}><option value="">All types</option>{Object.entries(memoryTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label><span>Person</span><select value={person} onChange={(event) => setPerson(event.target.value)}><option value="">Anyone</option>{availablePeople.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label><span>Person</span><select value={person} onChange={(event) => setPerson(event.target.value)}><option value="">Anyone</option>{availablePeople.map((value) => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
         <label><span>Tag</span><select value={tag} onChange={(event) => setTag(event.target.value)}><option value="">Any tag</option>{availableTags.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <button type="button" onClick={clearFilters}>Clear filters</button>
       </div>}

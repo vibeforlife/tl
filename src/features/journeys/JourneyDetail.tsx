@@ -26,7 +26,7 @@ import { deleteStorageFile, uploadJourneyAnchorPhoto } from '../../services/fire
 import { optimizeImageFile } from '../../services/firebase/imageOptimization';
 import { CreateEntryForm } from '../entries/CreateEntryForm';
 import { EntryCard } from '../entries/EntryCard';
-import { filterEntries, sortEntries } from '../entries/entryFiltering';
+import { filterEntries, getEntryPeopleOptions, sortEntries } from '../entries/entryFiltering';
 import {
   readJourneyScrollPosition,
   saveJourneyScrollPosition,
@@ -73,6 +73,7 @@ export function JourneyDetail({
   onBack,
   onEntryEditDirtyChange,
   initialEntryViewMode = 'cards',
+  initialEntryId = null,
   onEntryViewModeChange,
 }: {
   user: User;
@@ -80,6 +81,7 @@ export function JourneyDetail({
   onBack: () => void;
   onEntryEditDirtyChange?: (dirty: boolean) => void;
   initialEntryViewMode?: EntryViewMode;
+  initialEntryId?: string | null;
   onEntryViewModeChange?: (mode: EntryViewMode) => void;
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
@@ -214,7 +216,7 @@ export function JourneyDetail({
 
   // Restore only after the Journey and its Memories have loaded and rendered.
   useEffect(() => {
-    if (isLoading || error || !journey) return;
+    if (isLoading || error || !journey || initialEntryId) return;
 
     const savedPosition = readJourneyScrollPosition(user.uid, journeyId);
     let firstFrame = 0;
@@ -230,7 +232,7 @@ export function JourneyDetail({
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
     };
-  }, [isLoading, error, journey, journeyId, user.uid]);
+  }, [isLoading, error, journey, journeyId, user.uid, initialEntryId]);
 
   // Track the page scroll without writing to localStorage on every scroll event.
   useEffect(() => {
@@ -283,10 +285,7 @@ export function JourneyDetail({
   }, [journeyId, user.uid]);
 
   const availablePeople = useMemo(
-    () =>
-      Array.from(new Set(entries.flatMap((entry) => entry.people))).sort(
-        (a, b) => a.localeCompare(b),
-      ),
+    () => getEntryPeopleOptions(entries),
     [entries],
   );
 
@@ -666,6 +665,16 @@ export function JourneyDetail({
   const handleViewEntryFromMap = (entry: Entry) => {
     handleOpenMemory(entry);
   };
+
+  const initialEntryHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialEntryId || isLoading || error || !journey) return;
+    if (initialEntryHandledRef.current === initialEntryId) return;
+    const targetEntry = entries.find((entry) => entry.id === initialEntryId);
+    if (!targetEntry) return;
+    initialEntryHandledRef.current = initialEntryId;
+    handleOpenMemory(targetEntry);
+  }, [initialEntryId, isLoading, error, journey, entries, handleOpenMemory]);
 
   useEffect(() => {
     if (!selectedAlbumEntry) return;
@@ -1058,8 +1067,8 @@ export function JourneyDetail({
                     >
                       <option value="">Anyone</option>
                       {availablePeople.map((person) => (
-                        <option key={person} value={person}>
-                          {person}
+                        <option key={person.id} value={person.id}>
+                          {person.label}
                         </option>
                       ))}
                     </select>

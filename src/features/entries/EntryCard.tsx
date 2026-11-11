@@ -34,6 +34,7 @@ const formatCostTotal = (entry: Entry) => {
 const getStoryPreview = (story: string) => story.length <= 280 ? story : `${story.slice(0, 280).trimEnd()}…`;
 
 export function EntryCard({ entry, canEdit = false, onEdit, onDelete }: Props) {
+  const peopleNames = entry.peopleRefs.map((person) => person.displayName);
   return (
     <article className="entry-card" data-entry-id={entry.id}>
       <div className="entry-card__topline">
@@ -53,8 +54,8 @@ export function EntryCard({ entry, canEdit = false, onEdit, onDelete }: Props) {
       {entry.location && <div className="entry-card__location"><span className="entry-card__location-mark" aria-hidden="true">◎</span><div><strong>{entry.location.name}</strong>{entry.location.address && <span>{entry.location.address}</span>}</div></div>}
       {entry.story.length > 280 ? <details className="entry-card__story-details"><summary><span className="entry-card__story-preview">{getStoryPreview(entry.story)}</span>{' '}<span className="entry-card__story-read-full">Read full story</span><span className="entry-card__story-read-less">Read less</span></summary><p className="entry-card__story">{entry.story}</p></details> : <p className="entry-card__story">{entry.story}</p>}
       {entry.highlight && <blockquote className="entry-card__highlight"><span className="entry-card__highlight-label">THE MOMENT</span><p>“{entry.highlight}”</p></blockquote>}
-      {(entry.people.length > 0 || entry.costs.length > 0) && <div className="entry-card__details">
-        {entry.people.length > 0 && <div><span className="entry-card__detail-label">WITH</span><span>{entry.people.join(', ')}</span></div>}
+      {(peopleNames.length > 0 || entry.costs.length > 0) && <div className="entry-card__details">
+        {peopleNames.length > 0 && <div><span className="entry-card__detail-label">WITH</span><span>{peopleNames.join(', ')}</span></div>}
         {entry.costs.length > 0 && <div><span className="entry-card__detail-label">SPENT</span><span className="entry-card__cost">{formatCostTotal(entry)}</span></div>}
       </div>}
       {entry.tags.length > 0 && <div className="entry-tags">{entry.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}

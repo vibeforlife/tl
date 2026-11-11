@@ -21,6 +21,7 @@ import type {
   EntryGeography,
   EntryManualCountry,
   MemoryType,
+  MemoryPerson,
 } from '../../types/domain';
 
 export type CreateEntryInput = {
@@ -30,12 +31,25 @@ export type CreateEntryInput = {
   story: string;
   highlight: string;
   rating: number | undefined;
-  people: string[];
+  peopleRefs: MemoryPerson[];
   memoryType: MemoryType | '';
   tags: string[];
   location: EntryLocation | undefined;
   photo?: EntryPhoto;
   costs: EntryCost[];
+};
+
+const sanitizePeopleRefs = (refs: MemoryPerson[]): MemoryPerson[] => {
+  const seen = new Set<string>();
+  return refs.flatMap((ref) => {
+    const personId = ref.personId.trim();
+    const ownerId = ref.ownerId.trim();
+    const displayName = ref.displayName.trim();
+    const key = `${ownerId}:${personId}`;
+    if (!personId || !ownerId || !displayName || seen.has(key)) return [];
+    seen.add(key);
+    return [{ personId, ownerId, displayName }];
+  });
 };
 
 export const validateEntryInput = (input: CreateEntryInput): string | null => {
@@ -48,6 +62,10 @@ export const validateEntryInput = (input: CreateEntryInput): string | null => {
     (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5)
   ) {
     return 'Rating must be between 1 and 5 stars.';
+  }
+
+  if (input.peopleRefs && sanitizePeopleRefs(input.peopleRefs).length !== input.peopleRefs.length) {
+    return 'One or more selected people are invalid or duplicated. Please review the people selection.';
   }
 
   if (input.location) {
@@ -143,7 +161,7 @@ export const buildEntryDocument = (
     story: input.story.trim(),
     ...(input.highlight.trim() ? { highlight: input.highlight.trim() } : {}),
     ...(input.rating !== undefined ? { rating: input.rating } : {}),
-    people: input.people.map((person) => person.trim()).filter(Boolean),
+    peopleRefs: sanitizePeopleRefs(input.peopleRefs ?? []),
     ...(input.memoryType ? { memoryType: input.memoryType } : {}),
     tags: input.tags.map((tag) => tag.trim()).filter(Boolean),
     ...(location ? { location } : {}),
@@ -165,7 +183,7 @@ const mapEntry = (id: string, journeyId: string, data: DocumentData): Entry => (
   highlight: data.highlight as string | undefined,
   rating:
     typeof data.rating === 'number' ? data.rating : undefined,
-  people: Array.isArray(data.people) ? data.people as string[] : [],
+    peopleRefs: Array.isArray(data.peopleRefs) ? data.peopleRefs as MemoryPerson[] : [],
   memoryType: data.memoryType as MemoryType | undefined,
   tags: Array.isArray(data.tags) ? data.tags as string[] : [],
   location: data.location as EntryLocation | undefined,
@@ -263,7 +281,7 @@ const buildEntryUpdate = (input: UpdateEntryInput) => {
     story: input.story.trim(),
     highlight: input.highlight.trim(),
     rating: input.rating ?? null,
-    people: input.people.map((person) => person.trim()).filter(Boolean),
+    peopleRefs: sanitizePeopleRefs(input.peopleRefs ?? []),
     memoryType: input.memoryType || null,
     tags: input.tags.map((tag) => tag.trim()).filter(Boolean),
     location: location ?? null,

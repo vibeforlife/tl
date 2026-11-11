@@ -568,3 +568,11 @@
   .tl-country-assign { align-items: stretch; }
   .tl-country-assign button { width: 100%; }
 }
+
+
+/* Workstreams 1–2: Dashboard hierarchy and map-first country layout. */
+.td-dashboard-actions { display: flex; justify-content: flex-end; margin: 0 0 22px; }
+.td-country-layout { grid-template-columns: minmax(0, 1fr); }
+.td-country-map-panel { width: 100%; }
+.td-country-report { width: 100%; }
+@media (max-width: 680px) { .td-dashboard-actions { justify-content: stretch; } .td-dashboard-actions .td-create-journey-trigger { width: 100%; } }

@@ -6,9 +6,12 @@ import { listMyJourneys } from '../../services/firebase/journeys';
 import { TravelDashboard } from '../dashboard/TravelDashboard';
 import { CreateJourneyForm } from './CreateJourneyForm';
 import { JourneyDetail } from './JourneyDetail';
+import { PeopleDirectory } from '../people/PeopleDirectory';
 import {
   clearJourneyScrollPosition,
+  readCreateJourneyPanelExpanded,
   readJourneyNavigationState,
+  saveCreateJourneyPanelExpanded,
   saveJourneyNavigationState,
   type EntryViewMode,
 } from './navigationState';
@@ -16,15 +19,20 @@ import {
 export function JourneyHome({
   user,
   homeRequest = 0,
+  peopleRequest = 0,
 }: {
   user: User;
   homeRequest?: number;
+  peopleRequest?: number;
 }) {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [isPeopleDirectoryOpen, setIsPeopleDirectoryOpen] = useState(false);
+  const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(null);
+  const [initialEntryId, setInitialEntryId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreateJourneyOpen, setIsCreateJourneyOpen] = useState(false);
+  const [isCreateJourneyOpen, setIsCreateJourneyOpen] = useState(() => readCreateJourneyPanelExpanded(user.uid));
   const createJourneySectionRef = useRef<HTMLElement | null>(null);
   const editingEntryDirtyRef = useRef(false);
   const selectedJourneyIdRef = useRef<string | null>(null);
@@ -81,6 +89,10 @@ export function JourneyHome({
   }, [loadJourneys]);
 
   useEffect(() => {
+    saveCreateJourneyPanelExpanded(user.uid, isCreateJourneyOpen);
+  }, [isCreateJourneyOpen, user.uid]);
+
+  useEffect(() => {
     if (isCreateJourneyOpen) {
       createJourneySectionRef.current?.scrollIntoView({
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -90,6 +102,15 @@ export function JourneyHome({
       });
     }
   }, [isCreateJourneyOpen]);
+
+  useEffect(() => {
+    if (peopleRequest === 0) return;
+    if (editingEntryDirtyRef.current) {
+      if (!window.confirm('You have unsaved changes to this memory. Discard them before opening People?')) return;
+    }
+    editingEntryDirtyRef.current = false;
+    setIsPeopleDirectoryOpen(true);
+  }, [peopleRequest]);
 
   useEffect(() => {
     if (homeRequest === 0) {
@@ -107,6 +128,7 @@ export function JourneyHome({
     }
 
     editingEntryDirtyRef.current = false;
+    setIsPeopleDirectoryOpen(false);
     hasRestoredNavigationRef.current = true;
     if (selectedJourneyIdRef.current) {
       clearJourneyScrollPosition(user.uid, selectedJourneyIdRef.current);
@@ -115,12 +137,45 @@ export function JourneyHome({
     setSelectedJourneyId(null);
   }, [homeRequest, user.uid]);
 
+  const openCreateJourney = () => {
+    if (!isCreateJourneyOpen) {
+      setIsCreateJourneyOpen(true);
+      return;
+    }
+
+    createJourneySectionRef.current?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+      block: 'start',
+    });
+  };
+
+  if (isPeopleDirectoryOpen) return (
+    <PeopleDirectory
+      user={user}
+      entries={entries}
+      initialSelectedPersonKey={selectedPersonKey}
+      onBack={() => { setIsPeopleDirectoryOpen(false); setSelectedPersonKey(null); }}
+      onOpenMemory={(entry) => {
+        setIsPeopleDirectoryOpen(false);
+        setSelectedPersonKey(null);
+        setInitialEntryId(entry.id);
+        clearJourneyScrollPosition(user.uid, entry.journeyId);
+        saveJourneyNavigationState(user.uid, { page: 'journey', journeyId: entry.journeyId, entryViewMode: 'cards' });
+        setSelectedEntryViewMode('cards');
+        setSelectedJourneyId(entry.journeyId);
+      }}
+    />
+  );
+
   if (selectedJourneyId) {
     return (
       <JourneyDetail
         user={user}
         journeyId={selectedJourneyId}
         initialEntryViewMode={selectedEntryViewMode}
+        initialEntryId={initialEntryId}
         onEntryViewModeChange={(entryViewMode) => {
           setSelectedEntryViewMode(entryViewMode);
           saveJourneyNavigationState(user.uid, {
@@ -136,6 +191,7 @@ export function JourneyHome({
           clearJourneyScrollPosition(user.uid, selectedJourneyId);
           saveJourneyNavigationState(user.uid, { page: 'home' });
           setSelectedJourneyId(null);
+          setInitialEntryId(null);
           void loadJourneys();
         }}
       />
@@ -155,8 +211,14 @@ export function JourneyHome({
         entries={entries}
         isLoading={isLoading}
         currentUserId={user.uid}
-        onCreateJourney={() => setIsCreateJourneyOpen(true)}
+        onCreateJourney={openCreateJourney}
         onEntriesUpdated={refreshEntries}
+        onSelectPerson={(personKey) => {
+          if (editingEntryDirtyRef.current && !window.confirm('You have unsaved changes to this memory. Discard them before opening People?')) return;
+          editingEntryDirtyRef.current = false;
+          setSelectedPersonKey(personKey);
+          setIsPeopleDirectoryOpen(true);
+        }}
         onOpenJourney={(journeyId) => {
           const savedNavigation = readJourneyNavigationState(user.uid);
           const nextViewMode =
@@ -175,22 +237,23 @@ export function JourneyHome({
         }}
       />
 
-      {isCreateJourneyOpen && (
-        <section
-          ref={createJourneySectionRef}
-          className="journey-home__create journey-home__create--dashboard"
-          aria-labelledby="new-journey-title"
-        >
-          <div className="td-create-journey-heading">
-            <p className="td-kicker">A NEW CHAPTER</p>
-            <button
-              className="td-create-journey-close"
-              type="button"
-              onClick={() => setIsCreateJourneyOpen(false)}
-            >
-              Close <span aria-hidden="true">×</span>
-            </button>
-          </div>
+      <section
+        ref={createJourneySectionRef}
+        className="journey-home__create journey-home__create--dashboard"
+        aria-labelledby="new-journey-title"
+      >
+        <div className="td-create-journey-heading">
+          <p className="td-kicker">A NEW CHAPTER</p>
+          <button
+            className="td-create-journey-close"
+            type="button"
+            aria-expanded={isCreateJourneyOpen}
+            onClick={() => setIsCreateJourneyOpen((current) => !current)}
+          >
+            {isCreateJourneyOpen ? 'Collapse' : 'Expand'} <span aria-hidden="true">{isCreateJourneyOpen ? '−' : '+'}</span>
+          </button>
+        </div>
+        {isCreateJourneyOpen && (
           <CreateJourneyForm
             user={user}
             onCreated={async () => {
@@ -198,8 +261,8 @@ export function JourneyHome({
               setIsCreateJourneyOpen(false);
             }}
           />
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 

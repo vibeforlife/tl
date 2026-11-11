@@ -49,7 +49,10 @@ const validEntry = (): CreateEntryInput => ({
   story: 'The sunset was unforgettable.',
   highlight: 'The best sunset of the trip.',
   rating: 5,
-  people: ['Sarah', 'Ahmed'],
+  peopleRefs: [
+    { personId: 'person-sarah', ownerId: 'user-123', displayName: 'Sarah' },
+    { personId: 'person-ahmed', ownerId: 'user-123', displayName: 'Ahmed' },
+  ],
   memoryType: 'moment',
   tags: ['sunset', 'family'],
   location: {
@@ -110,7 +113,10 @@ describe('Entry mutation services', () => {
         title: 'Sunset in Oia',
         date: '2026-09-01',
         story: 'The sunset was unforgettable.',
-        people: ['Sarah', 'Ahmed'],
+        peopleRefs: [
+          { personId: 'person-sarah', ownerId: 'user-123', displayName: 'Sarah' },
+          { personId: 'person-ahmed', ownerId: 'user-123', displayName: 'Ahmed' },
+        ],
         tags: ['sunset', 'family'],
         createdBy: 'user-123',
         location: {
@@ -133,6 +139,7 @@ describe('Entry mutation services', () => {
           },
         ],
       });
+      expect(document).not.toHaveProperty('people');
 
       expect(serverTimestamp).toHaveBeenCalledTimes(2);
     });
@@ -186,7 +193,10 @@ describe('Entry mutation services', () => {
         title: 'Sunset in Oia',
         date: '2026-09-01',
         story: 'The sunset was unforgettable.',
-        people: ['Sarah', 'Ahmed'],
+        peopleRefs: [
+          { personId: 'person-sarah', ownerId: 'user-123', displayName: 'Sarah' },
+          { personId: 'person-ahmed', ownerId: 'user-123', displayName: 'Ahmed' },
+        ],
         tags: ['sunset', 'family'],
         location: {
           name: 'Oia, Santorini',
@@ -211,6 +221,7 @@ describe('Entry mutation services', () => {
           __testType: 'serverTimestamp',
         },
       });
+      expect(update).not.toHaveProperty('people');
 
       expect(serverTimestamp).toHaveBeenCalledTimes(1);
     });

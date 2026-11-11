@@ -4,7 +4,6 @@ import {
   calculateDashboardCoreStats,
   calculateDaysCovered,
   calculateMemoryCounts,
-  calculateNamedPeopleCount,
   calculatePeopleSummary,
   calculateRecordedPlaceCount,
 } from '../src/features/dashboard/dashboardCalculations';
@@ -26,7 +25,7 @@ const entry = (overrides: Partial<Entry> = {}): Entry => ({
   title: 'A memory',
   date: '2026-01-01',
   story: 'A story',
-  people: [],
+  peopleRefs: [],
   tags: [],
   costs: [],
   createdBy: 'user-1',
@@ -65,21 +64,29 @@ describe('dashboard calculations', () => {
     ])).toBe(2);
   });
 
-  it('counts entered people names case-insensitively and trims whitespace', () => {
-    expect(calculateNamedPeopleCount([
-      entry({ people: ['Amina', ' Samir  Khan '] }),
-      entry({ id: 'entry-2', people: ['amina', 'Samir Khan', 'Leila'] }),
-    ])).toBe(3);
-  });
 
-  it('returns normalized people summaries without guessing aliases', () => {
-    expect(calculatePeopleSummary([
-      entry({ people: [' Amina  Khan ', 'amina khan', 'A. Khan'] }),
-    ])).toEqual([
-      { key: 'a. khan', label: 'A. Khan', count: 1 },
-      { key: 'amina khan', label: 'Amina Khan', count: 1 },
+
+  it('summarizes profile-linked people by stable identity, not display-name similarity', () => {
+    const first = entry({
+      peopleRefs: [
+        { personId: 'person-1', ownerId: 'owner-1', displayName: 'Alex Smith' },
+        { personId: 'person-1', ownerId: 'owner-1', displayName: 'Alex Smith' },
+        { personId: 'person-2', ownerId: 'owner-1', displayName: 'Alex Smith' },
+      ],
+    });
+    const second = entry({
+      id: 'entry-2',
+      peopleRefs: [
+        { personId: 'person-1', ownerId: 'owner-1', displayName: 'Alex S.' },
+      ],
+    });
+
+    expect(calculatePeopleSummary([first, second])).toEqual([
+      { key: 'owner-1:person-1', label: 'Alex Smith', count: 2 },
+      { key: 'owner-1:person-2', label: 'Alex Smith', count: 1 },
     ]);
   });
+
 
   it('separates Memory authorship and deduplicates repeated journey-memory records', () => {
     const ownMemory = entry({ id: 'same-id', journeyId: 'journey-1', createdBy: 'user-1' });
@@ -103,7 +110,7 @@ describe('dashboard calculations', () => {
       [journey('2026-10-01', '2026-10-03'), journey('2026-10-03', '2026-10-05')],
       [
         entry({ id: 'mine', createdBy: 'user-1' }),
-        entry({ id: 'theirs', journeyId: 'journey-2', createdBy: 'user-2', people: ['Leila'] }),
+        entry({ id: 'theirs', journeyId: 'journey-2', createdBy: 'user-2', peopleRefs: [{ personId: 'leila', ownerId: 'user-2', displayName: 'Leila' }] }),
       ],
       'user-1',
     );

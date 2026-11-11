@@ -79,8 +79,6 @@ export const calculateRecordedPlaceCount = (entries: Entry[]): number => {
   return places.size;
 };
 
-const normalizePersonName = (value: string): string =>
-  value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
 export interface NamedPersonSummary {
   key: string;
@@ -88,24 +86,25 @@ export interface NamedPersonSummary {
   count: number;
 }
 
-/** Returns distinct entered names and Memory frequency; alias matching is never inferred. */
+/** Returns distinct referenced People profiles and Memory frequency. */
 export const calculatePeopleSummary = (entries: Entry[]): NamedPersonSummary[] => {
   const people = new Map<string, NamedPersonSummary>();
 
   for (const entry of entries) {
-    const namesInThisMemory = new Set<string>();
-    for (const person of entry.people) {
-      const label = person.trim().replace(/\s+/g, ' ');
-      const key = normalizePersonName(label);
-      if (!key || namesInThisMemory.has(key)) continue;
-      namesInThisMemory.add(key);
-
-      const existing = people.get(key);
-      people.set(key, {
-        key,
-        label: existing?.label ?? label,
-        count: (existing?.count ?? 0) + 1,
-      });
+    const peopleInThisMemory = new Set<string>();
+    if (entry.peopleRefs?.length) {
+      for (const person of entry.peopleRefs) {
+        const key = `${person.ownerId}:${person.personId}`;
+        const label = person.displayName.trim();
+        if (!person.ownerId || !person.personId || !label || peopleInThisMemory.has(key)) continue;
+        peopleInThisMemory.add(key);
+        const existing = people.get(key);
+        people.set(key, {
+          key,
+          label: existing?.label ?? label,
+          count: (existing?.count ?? 0) + 1,
+        });
+      }
     }
   }
 

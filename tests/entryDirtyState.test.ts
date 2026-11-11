@@ -13,7 +13,10 @@ const entry = (): Entry => ({
   story: 'The sunset was unforgettable.',
   highlight: 'The best sunset of the trip.',
   rating: 5,
-  people: ['Sarah', 'Ahmed'],
+  peopleRefs: [
+    { personId: 'sarah', ownerId: 'user-1', displayName: 'Sarah' },
+    { personId: 'ahmed', ownerId: 'user-1', displayName: 'Ahmed' },
+  ],
   memoryType: 'moment',
   tags: ['sunset', 'family'],
   location: {
@@ -47,7 +50,10 @@ const draft = (): CreateEntryInput => ({
   story: 'The sunset was unforgettable.',
   highlight: 'The best sunset of the trip.',
   rating: 5,
-  people: ['Sarah', 'Ahmed'],
+  peopleRefs: [
+    { personId: 'sarah', ownerId: 'user-1', displayName: 'Sarah' },
+    { personId: 'ahmed', ownerId: 'user-1', displayName: 'Ahmed' },
+  ],
   memoryType: 'moment',
   tags: ['sunset', 'family'],
   location: {
@@ -71,7 +77,6 @@ const draft = (): CreateEntryInput => ({
   ],
 });
 
-const peopleText = 'Sarah, Ahmed';
 const tagsText = 'sunset, family';
 const manualLocation = {
   name: 'Oia, Santorini',
@@ -83,7 +88,6 @@ const manualLocation = {
 const isDirty = (
   nextDraft: CreateEntryInput,
   options?: {
-    people?: string;
     tags?: string;
     location?: typeof manualLocation;
     caption?: string;
@@ -94,7 +98,6 @@ const isDirty = (
   isEntryDraftDirty(
     entry(),
     nextDraft,
-    options?.people ?? peopleText,
     options?.tags ?? tagsText,
     options?.location ?? manualLocation,
     options?.caption ?? 'Sunset',
@@ -117,7 +120,10 @@ describe('Entry dirty-state detection', () => {
   it('detects changes to structured fields', () => {
     expect(isDirty({ ...draft(), rating: 4 })).toBe(true);
     expect(isDirty({ ...draft(), memoryType: 'place' })).toBe(true);
-    expect(isDirty(draft(), { people: 'Sarah, Fatima' })).toBe(true);
+    expect(isDirty({
+      ...draft(),
+      peopleRefs: [{ personId: 'sarah', ownerId: 'user-1', displayName: 'Sarah' }],
+    })).toBe(true);
     expect(isDirty(draft(), { tags: 'sunset, beach' })).toBe(true);
   });
 
@@ -183,14 +189,6 @@ describe('Entry dirty-state detection', () => {
 });
 
 describe('Entry dirty-state normalization', () => {
-  it('treats equivalent people and tag formatting as clean', () => {
-    expect(
-      isDirty(draft(), {
-        people: '  Sarah,   Ahmed  ',
-        tags: ' sunset, family ',
-      }),
-    ).toBe(false);
-  });
 
   it('treats a different existing photo as dirty', () => {
     expect(

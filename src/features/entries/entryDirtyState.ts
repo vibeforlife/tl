@@ -6,9 +6,6 @@ import type {
 } from '../../types/domain';
 import type { CreateEntryInput } from '../../services/firebase/entries';
 
-const normalizeStringArray = (values: string[]) =>
-  values.map((value) => value.trim()).filter(Boolean);
-
 const locationsEqual = (
   left: EntryLocation | undefined,
   right: EntryLocation | undefined,
@@ -53,31 +50,28 @@ const costsEqual = (left: EntryCost[], right: EntryCost[]) => {
   });
 };
 
-export const isEntryDraftDirty = (
+type ManualLocationDraft = {
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+};
+
+export function isEntryDraftDirty(
   entry: Entry,
   draft: CreateEntryInput,
-  peopleText: string,
   tagsText: string,
-  manualLocation: {
-    name: string;
-    address: string;
-    latitude: string;
-    longitude: string;
-  },
+  manualLocation: ManualLocationDraft,
   photoCaption: string,
   pendingPhotoFile: File | null,
   removeExistingPhoto: boolean,
-) => {
-  const draftPeople = normalizeStringArray(
-    peopleText.split(','),
-  );
-  const draftTags = normalizeStringArray(
-    tagsText.split(','),
-  );
-
-  const peopleChanged =
-    JSON.stringify(draftPeople) !== JSON.stringify(entry.people);
-
+): boolean {
+  const draftTags = tagsText.split(',').map((value) => value.trim()).filter(Boolean);
+  const refKey = (person: { personId: string; ownerId: string; displayName: string }) =>
+    `${person.ownerId}:${person.personId}:${person.displayName}`;
+  const draftPeople = draft.peopleRefs.map(refKey).sort();
+  const originalPeople = entry.peopleRefs.map(refKey).sort();
+  const peopleChanged = JSON.stringify(draftPeople) !== JSON.stringify(originalPeople);
   const tagsChanged =
     JSON.stringify(draftTags) !== JSON.stringify(entry.tags);
 

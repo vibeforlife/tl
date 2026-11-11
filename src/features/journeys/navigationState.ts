@@ -148,3 +148,28 @@ export const saveJourneyNavigationState = (
     // when browser storage is unavailable or full.
   }
 };
+
+const CREATE_JOURNEY_PANEL_KEY_PREFIX = 'travel-lore:create-journey-panel:v1:';
+
+export const readCreateJourneyPanelExpanded = (
+  userId: string, storage: StorageLike | null = getBrowserStorage(),
+): boolean => {
+  if (!userId || !storage) return true;
+  try {
+    const value = storage.getItem(CREATE_JOURNEY_PANEL_KEY_PREFIX + userId);
+    return value === null ? true : value === 'expanded';
+  } catch {
+    return true;
+  }
+};
+
+export const saveCreateJourneyPanelExpanded = (
+  userId: string, expanded: boolean, storage: StorageLike | null = getBrowserStorage(),
+): void => {
+  if (!userId || !storage) return;
+  try {
+    storage.setItem(CREATE_JOURNEY_PANEL_KEY_PREFIX + userId, expanded ? 'expanded' : 'collapsed');
+  } catch {
+    // This preference is optional; the dashboard remains usable without storage.
+  }
+};

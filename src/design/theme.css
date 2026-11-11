@@ -5005,3 +5005,6 @@ select:focus {
   .journey-home--dashboard { padding-bottom: 48px; }
   .journey-home__create--dashboard { margin-top: 20px; }
 }
+
+.topbar__actions{display:flex;align-items:center;gap:22px}
+@media(max-width:520px){.topbar__actions{gap:14px}}

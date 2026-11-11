@@ -4,7 +4,7 @@ import { getEntryCountry, isEntryCountryAssigned, calculateCountryVisits } from 
 
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'memory-1', journeyId: 'journey-1', title: 'Memory', date: '2026-01-01',
-  story: 'Story', people: [], tags: [], costs: [], createdBy: 'user-1',
+  story: 'Story', tags: [], costs: [], createdBy: 'user-1',
   createdAt: {} as Entry['createdAt'], updatedAt: {} as Entry['updatedAt'],
   ...overrides,
 });

@@ -79,6 +79,16 @@ service cloud.firestore {
         );
     }
 
+    // Memory associations use stable People profile references only.
+    // The list is bounded and stores {personId, ownerId, displayName}.
+    function validEntryPeopleRefs(data) {
+      return !('peopleRefs' in data)
+        || (
+          data.peopleRefs is list
+          && data.peopleRefs.size() <= 100
+        );
+    }
+
     function validEntryGeography(data) {
       return !('geography' in data)
         || data.geography == null
@@ -114,6 +124,28 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, create, update: if signedIn() && request.auth.uid == userId;
+
+      match /people/{personId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.ownerId == userId
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.normalizedName is string
+          && request.resource.data.aliases is list
+          && request.resource.data.keys().hasOnly([
+            'ownerId', 'name', 'normalizedName', 'aliases', 'notes', 'createdAt', 'updatedAt'
+          ]);
+allow update: if signedIn()
+          && request.auth.uid == userId
+          && resource.data.ownerId == userId
+          && request.resource.data.ownerId == userId
+          && request.resource.data.keys().hasOnly([
+            'ownerId', 'name', 'normalizedName', 'aliases', 'notes', 'createdAt', 'updatedAt'
+          ]);
+        allow delete: if signedIn() && request.auth.uid == userId;
+      }
 
       match /journeys/{journeyId} {
         allow read: if signedIn() && request.auth.uid == userId;
@@ -206,9 +238,10 @@ service cloud.firestore {
           && request.resource.data.title is string
           && request.resource.data.date is string
           && request.resource.data.story is string
-          && request.resource.data.people is list
+          && request.resource.data.peopleRefs is list
           && request.resource.data.tags is list
           && request.resource.data.costs is list
+          && validEntryPeopleRefs(request.resource.data)
           && validEntryGeography(request.resource.data)
           && validEntryLocation(request.resource.data)
           && validEntryManualCountry(request.resource.data)
@@ -229,6 +262,7 @@ service cloud.firestore {
 
         allow update: if canEditJourney(journeyId)
           && request.resource.data.createdBy == resource.data.createdBy
+          && validEntryPeopleRefs(request.resource.data)
           && validEntryGeography(request.resource.data)
           && validEntryLocation(request.resource.data)
           && validEntryManualCountry(request.resource.data)

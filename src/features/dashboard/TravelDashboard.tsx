@@ -20,6 +20,7 @@ type TravelDashboardProps = {
   isLoading: boolean;
   currentUserId: string;
   onOpenJourney: (journeyId: string) => void;
+  onSelectPerson: (personKey: string) => void;
   onCreateJourney: () => void;
   onEntriesUpdated: () => Promise<void>;
 };
@@ -43,6 +44,7 @@ export function TravelDashboard({
   isLoading,
   currentUserId,
   onOpenJourney,
+  onSelectPerson,
   onCreateJourney,
   onEntriesUpdated,
 }: TravelDashboardProps) {
@@ -69,6 +71,11 @@ export function TravelDashboard({
 
   return (
     <main className="travel-dashboard">
+      <div className="td-dashboard-actions">
+        <button className="td-create-journey-trigger" type="button" onClick={onCreateJourney}>
+          <span aria-hidden="true">＋</span> Create a Journey
+        </button>
+      </div>
       {!isLoading && (
         <section className="td-countries" id="td-countries" aria-labelledby="td-countries-title">
           <div className="td-heading-row">
@@ -160,9 +167,6 @@ export function TravelDashboard({
             <span className="td-section-label__line" />
             <span>THE NUMBERS BEHIND YOUR STORIES</span>
           </div>
-          <button className="td-create-journey-trigger" type="button" onClick={onCreateJourney}>
-            <span aria-hidden="true">＋</span> Create a Journey
-          </button>
         </div>
         <div className="td-stats__grid">
           <article className="td-stat td-stat--coral">
@@ -198,38 +202,6 @@ export function TravelDashboard({
           </p>
         )}
       </section>
-
-      {photoMemories.length > 1 && (
-        <section className="td-moments" aria-labelledby="td-moments-title">
-          <div className="td-heading-row">
-            <div>
-              <p className="td-kicker">POSTCARDS FROM YOUR PAST</p>
-              <h2 id="td-moments-title">Little moments. <em>Big memories.</em></h2>
-            </div>
-            <span className="td-heading-aside">A FEW FRAMES FROM YOUR STORY</span>
-          </div>
-          <div className="td-memory-strip">
-            {supportingMemories.length > 0 ? supportingMemories.map((entry, index) => (
-              <article className={`td-memory-card td-memory-card--${index + 1}`} key={`${entry.journeyId}-${entry.id}`}>
-                <img src={entry.photo!.url} alt={entry.photo!.caption || entry.title} loading="lazy" />
-                <div className="td-memory-card__caption">
-                  <strong>{entry.photo!.caption || entry.title}</strong>
-                  <span>{entry.createdBy === currentUserId ? 'Your memory' : 'Shared memory'} · {formatDate(entry.date)}</span>
-                </div>
-              </article>
-            )) : (
-              <article className="td-memory-card td-memory-card--single">
-                <img src={featuredMemory!.photo!.url} alt={featuredMemory!.photo!.caption || featuredMemory!.title} loading="lazy" />
-                <div className="td-memory-card__caption">
-                  <strong>{featuredMemory!.photo!.caption || featuredMemory!.title}</strong>
-                  <span>{formatDate(featuredMemory!.date)}</span>
-                </div>
-              </article>
-            )}
-          </div>
-        </section>
-      )}
-
 
       <section className="td-journeys" id="td-journeys" aria-labelledby="td-journeys-title">
         <div className="td-heading-row td-heading-row--journeys">
@@ -277,6 +249,38 @@ export function TravelDashboard({
         )}
       </section>
 
+      {photoMemories.length > 1 && (
+        <section className="td-moments" aria-labelledby="td-moments-title">
+          <div className="td-heading-row">
+            <div>
+              <p className="td-kicker">POSTCARDS FROM YOUR PAST</p>
+              <h2 id="td-moments-title">Little moments. <em>Big memories.</em></h2>
+            </div>
+            <span className="td-heading-aside">A FEW FRAMES FROM YOUR STORY</span>
+          </div>
+          <div className="td-memory-strip">
+            {supportingMemories.length > 0 ? supportingMemories.map((entry, index) => (
+              <article className={`td-memory-card td-memory-card--${index + 1}`} key={`${entry.journeyId}-${entry.id}`}>
+                <img src={entry.photo!.url} alt={entry.photo!.caption || entry.title} loading="lazy" />
+                <div className="td-memory-card__caption">
+                  <strong>{entry.photo!.caption || entry.title}</strong>
+                  <span>{entry.createdBy === currentUserId ? 'Your memory' : 'Shared memory'} · {formatDate(entry.date)}</span>
+                </div>
+              </article>
+            )) : (
+              <article className="td-memory-card td-memory-card--single">
+                <img src={featuredMemory!.photo!.url} alt={featuredMemory!.photo!.caption || featuredMemory!.title} loading="lazy" />
+                <div className="td-memory-card__caption">
+                  <strong>{featuredMemory!.photo!.caption || featuredMemory!.title}</strong>
+                  <span>{formatDate(featuredMemory!.date)}</span>
+                </div>
+              </article>
+            )}
+          </div>
+        </section>
+      )}
+
+
       {!isLoading && namedPeople > 0 && (
         <section className="td-connections" aria-label="People in your memories">
           <div>
@@ -286,14 +290,16 @@ export function TravelDashboard({
           <div className="td-connections__content">
             <div className="td-word-cloud" aria-label={`A word cloud of ${namedPeople} distinct people names`}>
               {featuredPeople.map((person, index) => (
-                <span
+                <button
                   className={`td-word-cloud__name td-word-cloud__name--${(index % 5) + 1}`}
                   key={person.key}
+                  type="button"
                   style={{ fontSize: `${Math.min(1.85, 0.88 + person.count * 0.16)}rem` }}
+                  onClick={() => onSelectPerson(person.key)}
                   title={`${person.label}: ${person.count} ${person.count === 1 ? 'Memory' : 'Memories'}`}
                 >
                   {person.label}
-                </span>
+                </button>
               ))}
             </div>
             <span className="td-connections__total">{namedPeople} distinct names recorded</span>
@@ -302,8 +308,10 @@ export function TravelDashboard({
               <ul>
                 {allPeople.map((person) => (
                   <li key={person.key}>
-                    <span>{person.label}</span>
-                    <small>{person.count} {person.count === 1 ? 'Memory' : 'Memories'}</small>
+                    <button type="button" onClick={() => onSelectPerson(person.key)}>
+                      <span>{person.label}</span>
+                      <small>{person.count} {person.count === 1 ? 'Memory' : 'Memories'}</small>
+                    </button>
                   </li>
                 ))}
               </ul>

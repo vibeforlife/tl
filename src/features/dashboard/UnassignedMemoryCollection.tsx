@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Entry, Journey } from '../../types/domain';
 import { assignEntryCountryManually } from '../../services/firebase/entries';
-import { filterEntries, sortEntries, type EntrySortField } from '../entries/entryFiltering';
+import { filterEntries, getEntryPeopleOptions, sortEntries, type EntrySortField } from '../entries/entryFiltering';
 import { EntryCard } from '../entries/EntryCard';
 import { countryOptions } from './countryOptions';
 
@@ -43,7 +43,7 @@ export function UnassignedMemoryCollection({ entries, journeys, userId, onOpenJo
   const [notice, setNotice] = useState('');
 
   const availablePeople = useMemo(
-    () => [...new Set(entries.flatMap((entry) => entry.people))].sort((a, b) => a.localeCompare(b)),
+    () => getEntryPeopleOptions(entries),
     [entries],
   );
   const availableTags = useMemo(
@@ -136,7 +136,7 @@ export function UnassignedMemoryCollection({ entries, journeys, userId, onOpenJo
         <label><span>From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
         <label><span>To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
         <label><span>Memory type</span><select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}><option value="">All types</option>{Object.entries(memoryTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label><span>Person</span><select value={person} onChange={(event) => setPerson(event.target.value)}><option value="">Anyone</option>{availablePeople.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label><span>Person</span><select value={person} onChange={(event) => setPerson(event.target.value)}><option value="">Anyone</option>{availablePeople.map((value) => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
         <label><span>Tag</span><select value={tag} onChange={(event) => setTag(event.target.value)}><option value="">Any tag</option>{availableTags.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <button type="button" onClick={clearFilters}>Clear filters</button>
       </div>}

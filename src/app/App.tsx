@@ -68,6 +68,7 @@ function BrandSplash() {
 function JourneyShell({ user }: { user: User }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
+  const [peopleRequest, setPeopleRequest] = useState(0);
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -101,17 +102,20 @@ function JourneyShell({ user }: { user: User }) {
           <span className="topbar__wordmark">Travel Lore</span>
         </button>
 
-        <button
+        <nav className="topbar__actions" aria-label="Main navigation">
+          <button className="text-button text-button--quiet" type="button" onClick={() => setPeopleRequest(value => value + 1)}>People</button>
+          <button
           className="text-button text-button--quiet"
           type="button"
           onClick={handleSignOut}
           disabled={isSigningOut}
         >
           {isSigningOut ? 'Signing out…' : 'Sign out'}
-        </button>
+          </button>
+        </nav>
       </header>
 
-      <JourneyHome user={user} homeRequest={homeRequest} />
+      <JourneyHome user={user} homeRequest={homeRequest} peopleRequest={peopleRequest} />
     </div>
   );
 }

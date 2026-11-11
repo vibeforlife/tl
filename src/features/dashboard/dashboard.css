@@ -652,3 +652,228 @@
 @media (max-width: 520px) {
   .td-person-popup { padding: 25px 18px 20px; }
 }
+
+/* Dashboard people section: midnight explorer visual theme.
+   Scenic artwork + presentation only; existing markup and interactions remain intact. */
+.td-connections {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(26px, 3.2vw, 46px);
+  min-height: 390px;
+  padding: clamp(30px, 3.6vw, 52px);
+  overflow: hidden;
+  border: 1px solid rgba(83, 180, 213, .68);
+  border-radius: 20px;
+  color: #f5eee2;
+  background-color: #061a2c;
+  background-image:
+    linear-gradient(90deg, rgba(4, 19, 33, .12) 0%, rgba(4, 19, 33, .10) 34%, rgba(4, 19, 33, .78) 58%, #061a2c 100%),
+    url('/travel-lore-people-art.webp'),
+    radial-gradient(ellipse at 100% 0%, rgba(171, 75, 53, .18), transparent 32%),
+    linear-gradient(115deg, #071b2e 0%, #031629 58%, #071525 100%);
+  background-repeat: no-repeat;
+  background-position: center, left bottom, center, center;
+  background-size: 100% 100%, 59% 100%, 100% 100%, 100% 100%;
+  box-shadow:
+    0 18px 48px rgba(1, 10, 21, .28),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.td-connections::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .17;
+  background:
+    radial-gradient(ellipse at 22% 22%, transparent 0 17%, rgba(115, 143, 157, .22) 17.15% 17.35%, transparent 17.5% 24%, rgba(115, 143, 157, .15) 24.15% 24.3%, transparent 24.5%),
+    repeating-linear-gradient(0deg, transparent 0 35px, rgba(119, 158, 174, .05) 36px, transparent 37px);
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.45) 34%, transparent 68%);
+}
+
+.td-connections::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: auto;
+  right: -68px;
+  bottom: -112px;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(255, 167, 93, .17);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 18px rgba(255, 167, 93, .035),
+    0 0 0 40px rgba(255, 167, 93, .025),
+    0 0 0 66px rgba(255, 167, 93, .018);
+  pointer-events: none;
+}
+
+.td-connections > div:first-child {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 42%;
+  max-width: 540px;
+  min-width: 0;
+}
+
+.td-connections > div:first-child .td-kicker {
+  color: #19d8c7;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+
+.td-connections h2 {
+  color: #f7f0e4;
+  font-size: clamp(2.55rem, 4.15vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, .28);
+}
+
+.td-connections h2 em {
+  color: #ffb33f;
+}
+
+.td-connections__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 1 1 54%;
+  justify-items: stretch;
+  gap: 18px;
+  max-width: 900px;
+  min-width: 0;
+}
+
+.td-word-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.td-word-cloud__name {
+  padding: 8px 13px 9px;
+  border: 1px solid rgba(145, 174, 194, .58);
+  border-radius: 999px;
+  color: #d8e7f1;
+  background: rgba(5, 24, 42, .76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.05;
+  transition: transform 170ms ease, border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
+}
+
+.td-word-cloud__name:hover {
+  transform: translateY(-2px);
+  color: #fff8ed;
+  background: rgba(20, 48, 68, .96);
+  border-color: currentColor;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .22), 0 0 13px rgba(48, 205, 196, .12);
+}
+
+.td-word-cloud__name--1 { color: #ff927f; border-color: rgba(255, 112, 86, .78); }
+.td-word-cloud__name--2 { color: #ffc45c; border-color: rgba(255, 184, 63, .72); }
+.td-word-cloud__name--3 { color: #22d9c8; border-color: rgba(34, 217, 200, .72); }
+.td-word-cloud__name--4 { color: #d0b5ff; border-color: rgba(190, 157, 255, .72); }
+.td-word-cloud__name--5 { color: #ffb1ad; border-color: rgba(255, 145, 137, .68); }
+
+.td-connections__total {
+  color: rgba(226, 232, 239, .66);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.td-people-all {
+  width: 100%;
+  color: #dce7ed;
+  font-size: .78rem;
+}
+
+.td-people-all summary {
+  width: fit-content;
+  color: #20d9c9;
+  cursor: pointer;
+  font-weight: 800;
+  transition: color 150ms ease;
+}
+
+.td-people-all summary:hover {
+  color: #8ff7e9;
+}
+
+.td-people-all ul {
+  margin-top: 14px;
+}
+
+.td-people-all li button {
+  color: #e4edf2;
+  background: rgba(255, 255, 255, .045);
+  border-color: rgba(155, 184, 201, .16);
+}
+
+@media (max-width: 900px) {
+  .td-connections {
+    min-height: 0;
+    background-size: 100% 100%, 78% auto, 100% 100%, 100% 100%;
+  }
+
+  .td-connections > div:first-child {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  .td-connections h2 {
+    font-size: clamp(2.35rem, 6vw, 3.5rem);
+  }
+
+  .td-connections__content {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .td-connections {
+    gap: 22px;
+    padding: 25px 20px;
+    background-image:
+      linear-gradient(180deg, rgba(4, 19, 33, .12) 0%, rgba(4, 19, 33, .30) 38%, #061a2c 72%),
+      url('/travel-lore-people-art.webp'),
+      linear-gradient(115deg, #071b2e 0%, #031629 58%, #071525 100%);
+    background-position: center, left top, center;
+    background-size: 100% 100%, 100% auto, 100% 100%;
+  }
+
+  .td-connections h2 {
+    font-size: clamp(2.1rem, 10vw, 3rem);
+  }
+
+  .td-word-cloud {
+    gap: 8px;
+  }
+
+  .td-word-cloud__name {
+    padding: 7px 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-word-cloud__name {
+    transition: none;
+  }
+  .td-word-cloud__name:hover {
+    transform: none;
+  }
+}

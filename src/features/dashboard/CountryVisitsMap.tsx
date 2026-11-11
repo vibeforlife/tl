@@ -27,6 +27,37 @@ function collectCoordinates(value: unknown, output: Coordinate[]) {
   value.forEach((child) => collectCoordinates(child, output));
 }
 
+function fitVisitedCountries(
+  map: mapboxgl.Map,
+  codes: string[],
+  features: Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>,
+  duration: number,
+) {
+  const visited = new Set(codes);
+  const coordinates: Coordinate[] = [];
+
+  features.forEach((feature) => {
+    const code = feature.properties?.TL_COUNTRY_CODE;
+    if (!code || !visited.has(String(code))) return;
+    collectCoordinates(feature.geometry?.coordinates, coordinates);
+  });
+
+  if (coordinates.length === 0) {
+    map.fitBounds(WORLD_BOUNDS, { padding: 24, duration, maxZoom: 1.15 });
+    return;
+  }
+
+  const bounds = coordinates.reduce(
+    (result, coordinate) => result.extend(coordinate),
+    new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]),
+  );
+  map.fitBounds(bounds, {
+    padding: { top: 48, bottom: 48, left: 48, right: 48 },
+    duration,
+    maxZoom: 2.35,
+  });
+}
+
 function fitCountry(map: mapboxgl.Map, code: string) {
   const features = map.querySourceFeatures(SOURCE_ID, {
     filter: ['==', ['get', 'TL_COUNTRY_CODE'], code],
@@ -55,6 +86,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
   const visitedCodes = useMemo(() => countries.map((country) => country.code), [countries]);
   const visitedCodesRef = useRef(visitedCodes);
   const selectedCountryRef = useRef(selectedCountryCode);
+  const countryFeaturesRef = useRef<Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>>([]);
 
   useEffect(() => { onSelectRef.current = onSelectCountry; }, [onSelectCountry]);
   useEffect(() => { visitedCodesRef.current = visitedCodes; }, [visitedCodes]);
@@ -89,6 +121,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
             properties: { ...feature.properties, TL_COUNTRY_CODE: getGeoJsonCountryCode(feature.properties ?? {}) },
           })),
         };
+        countryFeaturesRef.current = normalizedGeojson.features;
 
         map.setProjection('mercator');
         map.addSource(SOURCE_ID, { type: 'geojson', data: normalizedGeojson });
@@ -110,9 +143,12 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
         });
         map.on('mouseenter', FILL_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', FILL_LAYER_ID, () => { map.getCanvas().style.cursor = ''; });
-        map.fitBounds(WORLD_BOUNDS, { padding: 24, duration: 0, maxZoom: 1.15 });
         map.once('idle', () => {
-          if (selectedCountryRef.current) fitCountry(map, selectedCountryRef.current);
+          if (selectedCountryRef.current) {
+            fitCountry(map, selectedCountryRef.current);
+          } else {
+            fitVisitedCountries(map, visitedCodesRef.current, countryFeaturesRef.current, 0);
+          }
         });
       } catch (error) {
         console.error('Travel Lore country map failed to load:', error);
@@ -147,12 +183,12 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.getSource(SOURCE_ID)) return;
-    if (!selectedCountryCode) {
-      map.fitBounds(WORLD_BOUNDS, { padding: 24, duration: 550, maxZoom: 1.15 });
-      return;
+    if (selectedCountryCode) {
+      fitCountry(map, selectedCountryCode);
+    } else {
+      fitVisitedCountries(map, visitedCodesRef.current, countryFeaturesRef.current, 550);
     }
-    fitCountry(map, selectedCountryCode);
-  }, [selectedCountryCode]);
+  }, [selectedCountryCode, visitedCodesKey]);
 
   if (!MAPBOX_TOKEN) return <div className="td-country-map__fallback">Add a Mapbox access token to enable the world map.</div>;
   return <div className="td-country-map">

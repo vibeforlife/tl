@@ -1,5 +1,6 @@
 import type { Entry, Journey } from '../../types/domain';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { calculateCountryVisits, isEntryCountryAssigned } from './countryVisitCalculations';
 import { CountryMemoryCollection } from './CountryMemoryCollection';
 import { UnassignedMemoryCollection } from './UnassignedMemoryCollection';
@@ -365,7 +366,7 @@ export function TravelDashboard({
         </section>
       )}
 
-      {selectedDashboardPerson && (
+      {selectedDashboardPerson && createPortal((
         <div className="td-person-popup-backdrop" role="presentation" onClick={() => setSelectedDashboardPersonKey(null)}>
           <section
             className="td-person-popup"
@@ -395,7 +396,7 @@ export function TravelDashboard({
             </button>
           </section>
         </div>
-      )}
+      ), document.body)}
 
       <footer className="td-footer">
         <span>TRAVEL LORE</span>

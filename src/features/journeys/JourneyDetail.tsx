@@ -33,6 +33,7 @@ import {
   type EntryViewMode,
 } from './navigationState';
 import { buildJustifiedRows } from './albumLayout';
+import { JourneyExportDialog } from '../journey-export/JourneyExportDialog';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
     default: JourneyMap,
@@ -85,6 +86,7 @@ export function JourneyDetail({
   onEntryViewModeChange?: (mode: EntryViewMode) => void;
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [isJourneyExportOpen, setIsJourneyExportOpen] = useState(false);
   const [journeyRole, setJourneyRole] = useState<JourneyRole | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -182,6 +184,9 @@ export function JourneyDetail({
         id: journeySnapshot.id,
         name: data.name as string,
         place: data.place as string,
+        ...(typeof data.googlePhotosUrl === 'string' && data.googlePhotosUrl.trim()
+          ? { googlePhotosUrl: data.googlePhotosUrl.trim() }
+          : {}),
         startDate: data.startDate as string,
         endDate: data.endDate as string,
         createdBy: data.createdBy as string,
@@ -877,6 +882,14 @@ export function JourneyDetail({
                 Edit journey
               </button>
             )}
+
+            <button
+              className="journey-management__button"
+              type="button"
+              onClick={() => setIsJourneyExportOpen(true)}
+            >
+              Export PDF
+            </button>
 
             {canShareJourney && (
               <>
@@ -1822,6 +1835,13 @@ export function JourneyDetail({
             </div>
           </div>
         </div>
+      )}
+      {isJourneyExportOpen && journey && (
+        <JourneyExportDialog
+          journey={journey}
+          entries={entries}
+          onClose={() => setIsJourneyExportOpen(false)}
+        />
       )}
       {selectedAlbumEntry?.photo && (
         <div

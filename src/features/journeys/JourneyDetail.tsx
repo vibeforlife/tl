@@ -149,10 +149,10 @@ export function JourneyDetail({
   const lightboxContentRef = useRef<HTMLDivElement | null>(null);
   const albumTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const handleEntryViewModeChange = (nextMode: EntryViewMode) => {
+  const handleEntryViewModeChange = useCallback((nextMode: EntryViewMode) => {
     setEntryViewMode(nextMode);
     onEntryViewModeChange?.(nextMode);
-  };
+  }, [onEntryViewModeChange]);
   const [entrySortField, setEntrySortField] = useState<EntrySortField>('date');
   const [entrySortDirection, setEntrySortDirection] =
     useState<'asc' | 'desc'>('desc');
@@ -644,7 +644,7 @@ export function JourneyDetail({
     setEditingEntry(null);
   };
 
-  const handleOpenMemory = (entry: Entry) => {
+  const handleOpenMemory = useCallback((entry: Entry) => {
     setSelectedAlbumEntryId(null);
     handleEntryViewModeChange('cards');
 
@@ -660,7 +660,7 @@ export function JourneyDetail({
         });
       });
     });
-  };
+  }, [handleEntryViewModeChange]);
 
   const handleViewEntryFromMap = (entry: Entry) => {
     handleOpenMemory(entry);

@@ -416,6 +416,10 @@
 .td-country-report__heading { display: flex; justify-content: space-between; align-items: center; padding: 17px 18px; border-bottom: 1px solid rgba(243,238,227,.12); }
 .td-country-report__heading h3 { margin: 0; color: var(--td-cream); font: 400 1.25rem Georgia, 'Times New Roman', serif; }
 .td-country-report__heading span { color: rgba(243,238,227,.48); font-size: .67rem; }
+.td-list-toggle { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin: 12px 18px 16px; padding: 8px 13px; border: 1px solid rgba(243,238,227,.2); border-radius: 999px; color: var(--td-cream); background: rgba(255,255,255,.035); font: inherit; font-size: .7rem; font-weight: 600; cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.td-list-toggle:hover { border-color: var(--td-teal); background: rgba(255,255,255,.07); }
+.td-list-toggle:focus-visible { outline: 2px solid var(--td-teal); outline-offset: 3px; }
+.td-list-toggle--journeys { margin: 20px 0 0; }
 .td-country-list { max-height: 430px; overflow: auto; }
 .td-country-row { display: grid; grid-template-columns: minmax(95px, 1fr) repeat(3, auto); align-items: center; gap: 12px; width: 100%; padding: 13px 15px; border: 0; border-bottom: 1px solid rgba(243,238,227,.08); color: var(--td-cream); background: transparent; text-align: left; cursor: pointer; }
 .td-country-row:hover, .td-country-row.is-selected { background: rgba(72,214,199,.1); }

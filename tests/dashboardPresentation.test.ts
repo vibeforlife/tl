@@ -6,6 +6,19 @@ const readRepoFile = (relativePath: string): string =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
 describe('dashboard presentation contracts', () => {
+  it('limits country and Journey previews to five with independent expand controls', () => {
+    const component = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
+
+    expect(component).toContain('countryVisits.slice(0, 5)');
+    expect(component).toContain('recentJourneys.slice(0, 5)');
+    expect(component).toContain('visibleCountries.map((country)');
+    expect(component).toContain('visibleJourneys.map((journey, index)');
+    expect(component).toContain('showAllCountries');
+    expect(component).toContain('showAllJourneys');
+    expect(component).toContain('Show all ${countryVisits.length} countries');
+    expect(component).toContain('Show all ${recentJourneys.length} Journeys');
+  });
+
   it('uses a two-column desktop layout when exactly two Journeys are present', () => {
     const component = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
     const styles = readRepoFile('src/features/dashboard/dashboard.css');

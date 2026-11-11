@@ -62,6 +62,10 @@ export function TravelDashboard({
   const coreStats = calculateDashboardCoreStats(journeys, entries, currentUserId);
   const countryVisits = useMemo(() => calculateCountryVisits(entries), [entries]);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  const [showAllJourneys, setShowAllJourneys] = useState(false);
+  const visibleCountries = showAllCountries ? countryVisits : countryVisits.slice(0, 5);
+  const visibleJourneys = showAllJourneys ? recentJourneys : recentJourneys.slice(0, 5);
   const selectedCountry = countryVisits.find((country) => country.code === selectedCountryCode) ?? null;
   const unassignedEntries = useMemo(() => entries.filter((entry) => !isEntryCountryAssigned(entry)), [entries]);
   const [showUnassigned, setShowUnassigned] = useState(false);
@@ -120,7 +124,7 @@ export function TravelDashboard({
                 </div>
               ) : (
                 <div className="td-country-list">
-                  {countryVisits.map((country) => (
+                  {visibleCountries.map((country) => (
                     <button className={`td-country-row${selectedCountryCode === country.code ? ' is-selected' : ''}`} key={country.code} type="button" aria-pressed={selectedCountryCode === country.code} onClick={() => { setShowUnassigned(false); setSelectedCountryCode(selectedCountryCode === country.code ? null : country.code); }}>
                       <span className="td-country-row__name"><strong>{country.name}</strong><small>{country.code}</small></span>
                       <span className="td-country-row__metrics"><strong>{country.memoryCount}</strong><small>Memories</small></span>
@@ -129,6 +133,16 @@ export function TravelDashboard({
                     </button>
                   ))}
                 </div>
+              )}
+              {countryVisits.length > 5 && (
+                <button
+                  className="td-list-toggle"
+                  type="button"
+                  aria-expanded={showAllCountries}
+                  onClick={() => setShowAllCountries((current) => !current)}
+                >
+                  {showAllCountries ? 'Show less' : `Show all ${countryVisits.length} countries`}
+                </button>
               )}
               <div className="td-country-list">
                 <button
@@ -241,8 +255,9 @@ export function TravelDashboard({
             <button className="td-empty__action" type="button" onClick={onCreateJourney}>Create your first Journey <span aria-hidden="true">↗</span></button>
           </div>
         ) : (
+          <>
           <div className={`td-journey-grid${journeys.length === 2 ? ' td-journey-grid--two' : ''}`}>
-            {recentJourneys.map((journey, index) => (
+            {visibleJourneys.map((journey, index) => (
               <button
                 className={`td-journey-card td-journey-card--${(index % 3) + 1}`}
                 key={journey.id}
@@ -265,6 +280,17 @@ export function TravelDashboard({
               </button>
             ))}
           </div>
+          {recentJourneys.length > 5 && (
+            <button
+              className="td-list-toggle td-list-toggle--journeys"
+              type="button"
+              aria-expanded={showAllJourneys}
+              onClick={() => setShowAllJourneys((current) => !current)}
+            >
+              {showAllJourneys ? 'Show less' : `Show all ${recentJourneys.length} Journeys`}
+            </button>
+          )}
+          </>
         )}
       </section>
 

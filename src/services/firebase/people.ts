@@ -115,6 +115,56 @@ export const updatePersonProfile = async (userId: string, personId: string, inpu
       updatedAt: serverTimestamp(),
     });
   });
+
+  // Memory references keep a displayName snapshot. Refresh those snapshots
+  // after the profile update. Re-saving retries a partially completed sweep.
+  await refreshPersonMemoryReferences(userId, personId, name);
+};
+
+const refreshPersonMemoryReferences = async (
+  userId: string,
+  personId: string,
+  displayName: string,
+): Promise<void> => {
+  const journeys = await listMyJourneys(userId);
+
+  for (const journey of journeys) {
+    const entriesRef = collection(db, 'journeys', journey.id, 'entries');
+    const entriesSnapshot = await getDocs(entriesRef);
+
+    for (const entrySnapshot of entriesSnapshot.docs) {
+      const data = entrySnapshot.data();
+      const refs = Array.isArray(data.peopleRefs) ? data.peopleRefs : [];
+      const hasTarget = refs.some(
+        (ref) => ref && ref.personId === personId && ref.ownerId === userId,
+      );
+      if (!hasTarget) continue;
+
+      const memoryRef = doc(db, 'journeys', journey.id, 'entries', entrySnapshot.id);
+      await runTransaction(db, async (transaction) => {
+        const current = await transaction.get(memoryRef);
+        if (!current.exists()) return;
+
+        const currentData = current.data();
+        const currentRefs = Array.isArray(currentData.peopleRefs) ? currentData.peopleRefs : [];
+        let changed = false;
+        const nextRefs = currentRefs.map((ref) => {
+          if (!ref || ref.personId !== personId || ref.ownerId !== userId || ref.displayName === displayName) {
+            return ref;
+          }
+          changed = true;
+          return { ...ref, displayName };
+        });
+
+        if (changed) {
+          transaction.update(memoryRef, {
+            peopleRefs: nextRefs,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      });
+    }
+  }
 };
 
 

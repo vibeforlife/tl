@@ -56,6 +56,7 @@ const mapJourney = (id: string, data: DocumentData): Journey => ({
   ...(data.googlePhotosUrl
     ? { googlePhotosUrl: data.googlePhotosUrl as string }
     : {}),
+  distanceEndpointMode: data.distanceEndpointMode === 'explicit' ? 'explicit' : 'legacy-yyz',
   createdBy: data.createdBy as string,
   createdAt: data.createdAt as Timestamp,
   updatedAt: data.updatedAt as Timestamp,
@@ -79,6 +80,7 @@ export const createJourney = async (
     place: input.place.trim(),
     startDate: input.startDate,
     endDate: input.endDate,
+    distanceEndpointMode: 'explicit',
     createdBy: user.uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

@@ -2,6 +2,8 @@ import type { Entry, Journey } from '../../types/domain';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { calculateCountryVisits, isEntryCountryAssigned } from './countryVisitCalculations';
+import { getGeoJsonContinentMap } from './countryCodeMapping';
+import { calculateContinentsExplored, calculateLongestJourney, calculateMostVisitedCountries, calculateTravelMileage } from './travelInsightsCalculations';
 import { CountryMemoryCollection } from './CountryMemoryCollection';
 import { UnassignedMemoryCollection } from './UnassignedMemoryCollection';
 
@@ -62,6 +64,12 @@ export function TravelDashboard({
 
   const coreStats = calculateDashboardCoreStats(journeys, entries, currentUserId);
   const countryVisits = useMemo(() => calculateCountryVisits(entries), [entries]);
+  const travelMileage = useMemo(() => calculateTravelMileage(journeys, entries), [journeys, entries]);
+  const longestJourney = useMemo(() => calculateLongestJourney(journeys), [journeys]);
+  const mostVisitedCountries = useMemo(() => calculateMostVisitedCountries(countryVisits), [countryVisits]);
+  const [continentByCountryCode, setContinentByCountryCode] = useState<Record<string, string> | null>(null);
+  const [continentDataStatus, setContinentDataStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const continentsExplored = useMemo(() => calculateContinentsExplored(countryVisits, continentByCountryCode ?? {}), [countryVisits, continentByCountryCode]);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [showAllCountries, setShowAllCountries] = useState(false);
   const [showAllJourneys, setShowAllJourneys] = useState(false);
@@ -85,6 +93,19 @@ export function TravelDashboard({
     : [];
 
   useEffect(() => {
+    let active = true;
+    fetch(`${import.meta.env.BASE_URL}data/ne_110m_admin_0_countries.geojson`)
+      .then(response => { if (!response.ok) throw new Error('Country dataset unavailable.'); return response.json(); })
+      .then((data: {features?: Array<{properties?: Record<string, unknown>}>}) => {
+        if (!active) return;
+        if (!Array.isArray(data.features)) throw new Error('Country dataset has no feature collection.');
+        setContinentByCountryCode(getGeoJsonContinentMap(data.features)); setContinentDataStatus('ready');
+      })
+      .catch(() => { if (active) setContinentDataStatus('error'); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (!selectedDashboardPersonKey) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setSelectedDashboardPersonKey(null);
@@ -100,6 +121,126 @@ export function TravelDashboard({
           <span aria-hidden="true">＋</span> Create a Journey
         </button>
       </div>
+
+
+      <section className="td-insights" aria-labelledby="td-insights-title">
+        <div className="td-insights__heading">
+          <p className="td-kicker">THE BIGGER PICTURE</p>
+          <h2 id="td-insights-title">Travel <em>insights.</em></h2>
+        </div>
+        <div className="td-insights__grid">
+          <article className="td-insight">
+            <span className="td-insight__label">Countries visited</span>
+            <strong>{isLoading ? '—' : countryVisits.length}</strong>
+            <small>Distinct countries represented by recorded Memories.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Continents visited</span>
+            <strong>{isLoading || continentDataStatus !== 'ready' ? '—' : continentsExplored.length}</strong>
+            <small>{continentDataStatus === 'error' ? 'Local continent data could not be loaded.' : continentsExplored.length ? continentsExplored.join(' · ') : 'Based on recorded country assignments and Natural Earth classification.'}</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Estimated distance travelled</span>
+            <strong>{isLoading || !travelMileage.journeysWithDistance ? '—' : `${Math.round(travelMileage.totalMiles).toLocaleString()} mi · ${Math.round(travelMileage.totalMiles * 1.609344).toLocaleString()} km`}</strong>
+            <small>Straight-line great-circle estimate · {travelMileage.journeysWithDistance} Journeys with measurable legs.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Most visited country</span>
+            <strong className="td-insight__value--text">{isLoading || !mostVisitedCountries.length ? '—' : mostVisitedCountries.map(c => c.name).join(', ')}</strong>
+            <small>{mostVisitedCountries.length ? `${mostVisitedCountries[0].journeyCount} distinct Journeys${mostVisitedCountries.length > 1 ? ' · tied leaders' : ''}` : 'Counted by distinct Journeys, not Memory volume.'}</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Longest Journey</span>
+            <strong>{isLoading || !longestJourney ? '—' : `${longestJourney.days} ${longestJourney.days === 1 ? 'day' : 'days'}`}</strong>
+            <small>{longestJourney ? longestJourney.journeys.map(j => j.name).join(', ') : 'Based on inclusive calendar dates in the Journey record.'}</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Number of Journeys</span>
+            <strong>{isLoading ? '—' : coreStats.journeyCount}</strong>
+            <small>Distinct Journey records available to you.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Recorded places</span>
+            <strong>{isLoading ? '—' : recordedPlaces}</strong>
+            <small>Distinct places recorded in your Memories.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Recorded people</span>
+            <strong>{isLoading ? '—' : namedPeople}</strong>
+            <small>Distinct people names linked to your Memories.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Days covered by recorded Journeys</span>
+            <strong>{isLoading ? '—' : daysCovered}</strong>
+            <small>Inclusive calendar dates, with overlapping dates counted once.</small>
+          </article>
+          <article className="td-insight">
+            <span className="td-insight__label">Memories across your Journeys</span>
+            <strong>{isLoading ? '—' : memories.total}</strong>
+            <small>{memories.authoredByCurrentUser} created by you · {memories.authoredByOthers} by other Journey members.</small>
+          </article>
+        </div>
+        {!isLoading && <p className="td-insights__note">Mileage is an estimate, not actual flight or road distance. Historical Journeys use Toronto Pearson (YYZ) as the assumed start and return point; Journeys created now use their first and last recorded Memories. Missing coordinates and ambiguous same-day ordering are not guessed. Journey duration uses recorded calendar dates, not verified nights away.{travelMileage.journeysWithoutDistance > 0 ? ` ${travelMileage.journeysWithoutDistance} Journey(s) had no safely measurable route.` : ''} Continents use Natural Earth classification; transcontinental countries follow that dataset's single assigned continent.</p>}
+      </section>
+
+      <section className="td-journeys" id="td-journeys" aria-labelledby="td-journeys-title">
+        <div className="td-heading-row td-heading-row--journeys">
+          <div>
+            <p className="td-kicker">THE COLLECTION</p>
+            <h2 id="td-journeys-title">Journeys <em>worth remembering.</em></h2>
+          </div>
+          <span className="td-journey-count">{isLoading ? 'Loading…' : `${coreStats.journeyCount} ${coreStats.journeyCount === 1 ? 'journey' : 'journeys'}`}</span>
+        </div>
+
+        {isLoading ? (
+          <p className="td-status" aria-live="polite">Gathering your stories…</p>
+        ) : journeys.length === 0 ? (
+          <div className="td-empty">
+            <span className="td-empty__ornament" aria-hidden="true">✳</span>
+            <h3>Your story starts somewhere.</h3>
+            <p>Create your first Journey and give those memories a home.</p>
+            <button className="td-empty__action" type="button" onClick={onCreateJourney}>Create your first Journey <span aria-hidden="true">↗</span></button>
+          </div>
+        ) : (
+          <>
+          <div className={`td-journey-grid${journeys.length === 2 ? ' td-journey-grid--two' : ''}`}>
+            {visibleJourneys.map((journey, index) => (
+              <button
+                className={`td-journey-card td-journey-card--${(index % 3) + 1}`}
+                key={journey.id}
+                type="button"
+                onClick={() => onOpenJourney(journey.id)}
+              >
+                {journey.anchorPhoto?.url ? (
+                  <img className="td-journey-card__image" src={journey.anchorPhoto.url} alt="" loading="lazy" />
+                ) : (
+                  <span className="td-journey-card__pattern" aria-hidden="true">✳</span>
+                )}
+                <span className="td-journey-card__overlay" />
+                <span className="td-journey-card__index">{String(index + 1).padStart(2, '0')}</span>
+                <span className="td-journey-card__content">
+                  <span>{journey.place}</span>
+                  <strong>{journey.name}</strong>
+                  <small>{formatDateRange(journey)}</small>
+                </span>
+                <span className="td-journey-card__arrow" aria-hidden="true">↗</span>
+              </button>
+            ))}
+          </div>
+          {recentJourneys.length > 5 && (
+            <button
+              className="td-list-toggle td-list-toggle--journeys"
+              type="button"
+              aria-expanded={showAllJourneys}
+              onClick={() => setShowAllJourneys((current) => !current)}
+            >
+              {showAllJourneys ? 'Show less' : `Show all ${recentJourneys.length} Journeys`}
+            </button>
+          )}
+          </>
+        )}
+      </section>
+
       {!isLoading && (
         <section className="td-countries" id="td-countries" aria-labelledby="td-countries-title">
           <div className="td-heading-row">
@@ -194,139 +335,6 @@ export function TravelDashboard({
         </section>
       )}
 
-      <section className="td-stats" aria-label="Your travel at a glance">
-        <div className="td-section-heading">
-          <div className="td-section-label">
-            <span>AT A GLANCE</span>
-            <span className="td-section-label__line" />
-            <span>THE NUMBERS BEHIND YOUR STORIES</span>
-          </div>
-        </div>
-        <div className="td-stats__grid">
-          <article className="td-stat td-stat--coral">
-            <span className="td-stat__symbol" aria-hidden="true">✳</span>
-            <strong>{isLoading ? '—' : coreStats.journeyCount}</strong>
-            <span>Journeys</span>
-          </article>
-          <article className="td-stat td-stat--gold">
-            <span className="td-stat__symbol" aria-hidden="true">◷</span>
-            <strong>{isLoading ? '—' : daysCovered}</strong>
-            <span>Days covered by recorded Journeys</span>
-          </article>
-          <article className="td-stat td-stat--teal">
-            <span className="td-stat__symbol" aria-hidden="true">▧</span>
-            <strong>{isLoading ? '—' : memories.total}</strong>
-            <span>Memories across your Journeys</span>
-          </article>
-          <article className="td-stat td-stat--lilac">
-            <span className="td-stat__symbol" aria-hidden="true">⌖</span>
-            <strong>{isLoading ? '—' : recordedPlaces}</strong>
-            <span>Recorded places</span>
-          </article>
-          <article className="td-stat td-stat--blue">
-            <span className="td-stat__symbol" aria-hidden="true">◎</span>
-            <strong>{isLoading ? '—' : countryVisits.length}</strong>
-            <span>Countries visited</span>
-          </article>
-        </div>
-        {!isLoading && journeys.length > 0 && (
-          <p className="td-stats__note">
-            Days are calendar dates covered by your Journey records, with overlapping dates counted once. They are not verified days physically travelling.
-            {' '}Of {memories.total} Memories, {memories.authoredByCurrentUser} {memories.authoredByCurrentUser === 1 ? 'was' : 'were'} created by you and {memories.authoredByOthers} by other Journey members.
-          </p>
-        )}
-      </section>
-
-      <section className="td-journeys" id="td-journeys" aria-labelledby="td-journeys-title">
-        <div className="td-heading-row td-heading-row--journeys">
-          <div>
-            <p className="td-kicker">THE COLLECTION</p>
-            <h2 id="td-journeys-title">Journeys <em>worth remembering.</em></h2>
-          </div>
-          <span className="td-journey-count">{isLoading ? 'Loading…' : `${coreStats.journeyCount} ${coreStats.journeyCount === 1 ? 'journey' : 'journeys'}`}</span>
-        </div>
-
-        {isLoading ? (
-          <p className="td-status" aria-live="polite">Gathering your stories…</p>
-        ) : journeys.length === 0 ? (
-          <div className="td-empty">
-            <span className="td-empty__ornament" aria-hidden="true">✳</span>
-            <h3>Your story starts somewhere.</h3>
-            <p>Create your first Journey and give those memories a home.</p>
-            <button className="td-empty__action" type="button" onClick={onCreateJourney}>Create your first Journey <span aria-hidden="true">↗</span></button>
-          </div>
-        ) : (
-          <>
-          <div className={`td-journey-grid${journeys.length === 2 ? ' td-journey-grid--two' : ''}`}>
-            {visibleJourneys.map((journey, index) => (
-              <button
-                className={`td-journey-card td-journey-card--${(index % 3) + 1}`}
-                key={journey.id}
-                type="button"
-                onClick={() => onOpenJourney(journey.id)}
-              >
-                {journey.anchorPhoto?.url ? (
-                  <img className="td-journey-card__image" src={journey.anchorPhoto.url} alt="" loading="lazy" />
-                ) : (
-                  <span className="td-journey-card__pattern" aria-hidden="true">✳</span>
-                )}
-                <span className="td-journey-card__overlay" />
-                <span className="td-journey-card__index">{String(index + 1).padStart(2, '0')}</span>
-                <span className="td-journey-card__content">
-                  <span>{journey.place}</span>
-                  <strong>{journey.name}</strong>
-                  <small>{formatDateRange(journey)}</small>
-                </span>
-                <span className="td-journey-card__arrow" aria-hidden="true">↗</span>
-              </button>
-            ))}
-          </div>
-          {recentJourneys.length > 5 && (
-            <button
-              className="td-list-toggle td-list-toggle--journeys"
-              type="button"
-              aria-expanded={showAllJourneys}
-              onClick={() => setShowAllJourneys((current) => !current)}
-            >
-              {showAllJourneys ? 'Show less' : `Show all ${recentJourneys.length} Journeys`}
-            </button>
-          )}
-          </>
-        )}
-      </section>
-
-      {photoMemories.length > 1 && (
-        <section className="td-moments" aria-labelledby="td-moments-title">
-          <div className="td-heading-row">
-            <div>
-              <p className="td-kicker">POSTCARDS FROM YOUR PAST</p>
-              <h2 id="td-moments-title">Little moments. <em>Big memories.</em></h2>
-            </div>
-            <span className="td-heading-aside">A FEW FRAMES FROM YOUR STORY</span>
-          </div>
-          <div className="td-memory-strip">
-            {supportingMemories.length > 0 ? supportingMemories.map((entry, index) => (
-              <article className={`td-memory-card td-memory-card--${index + 1}`} key={`${entry.journeyId}-${entry.id}`}>
-                <img src={entry.photo!.url} alt={entry.photo!.caption || entry.title} loading="lazy" />
-                <div className="td-memory-card__caption">
-                  <strong>{entry.photo!.caption || entry.title}</strong>
-                  <span>{entry.createdBy === currentUserId ? 'Your memory' : 'Shared memory'} · {formatDate(entry.date)}</span>
-                </div>
-              </article>
-            )) : (
-              <article className="td-memory-card td-memory-card--single">
-                <img src={featuredMemory!.photo!.url} alt={featuredMemory!.photo!.caption || featuredMemory!.title} loading="lazy" />
-                <div className="td-memory-card__caption">
-                  <strong>{featuredMemory!.photo!.caption || featuredMemory!.title}</strong>
-                  <span>{formatDate(featuredMemory!.date)}</span>
-                </div>
-              </article>
-            )}
-          </div>
-        </section>
-      )}
-
-
       {!isLoading && namedPeople > 0 && (
         <section className="td-connections" aria-label="People in your memories">
           <div>
@@ -362,6 +370,37 @@ export function TravelDashboard({
                 ))}
               </ul>
             </details>
+          </div>
+        </section>
+      )}
+
+      {photoMemories.length > 1 && (
+        <section className="td-moments" aria-labelledby="td-moments-title">
+          <div className="td-heading-row">
+            <div>
+              <p className="td-kicker">POSTCARDS FROM YOUR PAST</p>
+              <h2 id="td-moments-title">Little moments. <em>Big memories.</em></h2>
+            </div>
+            <span className="td-heading-aside">A FEW FRAMES FROM YOUR STORY</span>
+          </div>
+          <div className="td-memory-strip">
+            {supportingMemories.length > 0 ? supportingMemories.map((entry, index) => (
+              <article className={`td-memory-card td-memory-card--${index + 1}`} key={`${entry.journeyId}-${entry.id}`}>
+                <img src={entry.photo!.url} alt={entry.photo!.caption || entry.title} loading="lazy" />
+                <div className="td-memory-card__caption">
+                  <strong>{entry.photo!.caption || entry.title}</strong>
+                  <span>{entry.createdBy === currentUserId ? 'Your memory' : 'Shared memory'} · {formatDate(entry.date)}</span>
+                </div>
+              </article>
+            )) : (
+              <article className="td-memory-card td-memory-card--single">
+                <img src={featuredMemory!.photo!.url} alt={featuredMemory!.photo!.caption || featuredMemory!.title} loading="lazy" />
+                <div className="td-memory-card__caption">
+                  <strong>{featuredMemory!.photo!.caption || featuredMemory!.title}</strong>
+                  <span>{formatDate(featuredMemory!.date)}</span>
+                </div>
+              </article>
+            )}
           </div>
         </section>
       )}

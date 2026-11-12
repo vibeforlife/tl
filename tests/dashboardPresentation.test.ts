@@ -53,3 +53,58 @@ describe('dashboard presentation contracts', () => {
     expect(component).toContain('View full profile');
   });
 });
+
+
+describe('TL-004B dashboard presentation contracts', () => {
+  it('shows the travel insights and labels mileage as an estimate', () => {
+    const component = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
+    expect(component).toContain('Estimated distance travelled');
+    expect(component).toContain('Continents visited');
+    expect(component).toContain('Most visited country');
+    expect(component).toContain('Longest Journey');
+    expect(component).toContain('Straight-line great-circle estimate');
+  });
+  it('provides map reset and visible load-error UI', () => {
+    const component = readRepoFile('src/features/dashboard/CountryVisitsMap.tsx');
+    expect(component).toContain('Return to original map view');
+    expect(component).toContain('td-country-map__error');
+    expect(component).toContain('countryFeaturesRef.current');
+    expect(component).not.toContain('querySourceFeatures');
+    expect(component).toContain("map.on('error'");
+  });
+
+  it('validates the endpoint mode on Journey creation, not updates', () => {
+    const rules = readRepoFile('firestore.rules');
+    const createStart = rules.indexOf("allow create: if signedIn()\n        && request.resource.data.createdBy == request.auth.uid");
+    const updateStart = rules.indexOf('allow update: if canEditJourney(journeyId)');
+    expect(createStart).toBeGreaterThanOrEqual(0);
+    expect(updateStart).toBeGreaterThanOrEqual(0);
+
+    const createEnd = rules.indexOf(';', createStart);
+    const updateEnd = rules.indexOf(';', updateStart);
+    const createRule = rules.slice(createStart, createEnd);
+    const updateRule = rules.slice(updateStart, updateEnd);
+
+    expect(createRule).toContain("!('distanceEndpointMode' in request.resource.data)");
+    expect(createRule).toContain("request.resource.data.distanceEndpointMode == 'explicit'");
+    expect(updateRule).not.toContain('distanceEndpointMode');
+  });
+});
+
+
+describe('Home dashboard section hierarchy', () => {
+  it('keeps the dashboard sections in the agreed order', () => {
+    const component = readRepoFile('src/features/dashboard/TravelDashboard.tsx');
+    const positions = [
+      component.indexOf('<div className="td-dashboard-actions"'),
+      component.indexOf('<section className="td-insights"'),
+      component.indexOf('<section className="td-journeys"'),
+      component.indexOf('<section className="td-countries"'),
+      component.indexOf('<section className="td-connections"'),
+      component.indexOf('<section className="td-moments"'),
+    ];
+    expect(positions.every(position => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(component).toContain('onCreateJourney');
+  });
+});

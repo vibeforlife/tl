@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CountryVisitSummary } from './countryVisitCalculations';
@@ -12,7 +12,7 @@ const LINE_LAYER_ID = 'travel-lore-country-borders';
 type Props = {
   countries: CountryVisitSummary[];
   selectedCountryCode: string | null;
-  onSelectCountry: (code: string) => void;
+  onSelectCountry: (code: string | null) => void;
 };
 
 type Coordinate = [number, number];
@@ -41,12 +41,10 @@ function fitWorld(map: mapboxgl.Map, duration: number): boolean {
   return true;
 }
 
-function fitCountry(map: mapboxgl.Map, code: string) {
-  const features = map.querySourceFeatures(SOURCE_ID, {
-    filter: ['==', ['get', 'TL_COUNTRY_CODE'], code],
-  });
+function fitCountry(map: mapboxgl.Map, code: string, features: Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>) {
+  const matchingFeatures = features.filter(feature => feature.properties?.TL_COUNTRY_CODE === code);
   const coordinates: Coordinate[] = [];
-  features.forEach((feature) => collectCoordinates(
+  matchingFeatures.forEach((feature) => collectCoordinates(
     feature.geometry && 'coordinates' in feature.geometry ? feature.geometry.coordinates : null,
     coordinates,
   ));
@@ -71,6 +69,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
   const selectedCountryRef = useRef(selectedCountryCode);
   const countryFeaturesRef = useRef<Array<{ properties?: Record<string, unknown>; geometry?: { coordinates?: unknown } }>>([]);
   const hasInitialWorldFitRef = useRef(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => { onSelectRef.current = onSelectCountry; }, [onSelectCountry]);
   useEffect(() => { visitedCodesRef.current = visitedCodes; }, [visitedCodes]);
@@ -90,6 +89,13 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
       renderWorldCopies: false,
     });
     mapRef.current = map;
+    map.on('error', (event) => {
+      console.error('Travel Lore country map runtime error:', event.error);
+      const message = event.error instanceof Error
+        ? event.error.message
+        : 'The country map encountered an error.';
+      if (mapRef.current === map) setMapError(current => current ?? message);
+    });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
     map.on('load', async () => {
@@ -129,13 +135,14 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
         map.on('mouseleave', FILL_LAYER_ID, () => { map.getCanvas().style.cursor = ''; });
         map.once('idle', () => {
           if (selectedCountryRef.current) {
-            fitCountry(map, selectedCountryRef.current);
+            fitCountry(map, selectedCountryRef.current, countryFeaturesRef.current);
           } else if (fitWorld(map, 0)) {
             hasInitialWorldFitRef.current = true;
           }
         });
       } catch (error) {
         console.error('Travel Lore country map failed to load:', error);
+        if (mapRef.current === map) setMapError(error instanceof Error ? error.message : 'The country map could not be loaded.');
       }
     });
 
@@ -183,7 +190,7 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
     const map = mapRef.current;
     if (!map || !map.getSource(SOURCE_ID)) return;
     if (selectedCountryCode) {
-      fitCountry(map, selectedCountryCode);
+      fitCountry(map, selectedCountryCode, countryFeaturesRef.current);
     } else if (fitWorld(map, 550)) {
       hasInitialWorldFitRef.current = true;
     }
@@ -192,6 +199,8 @@ export function CountryVisitsMap({ countries, selectedCountryCode, onSelectCount
   if (!MAPBOX_TOKEN) return <div className="td-country-map__fallback">Add a Mapbox access token to enable the world map.</div>;
   return <div className="td-country-map">
     <div className="td-country-map__canvas" ref={containerRef} aria-label="Flat world map showing countries visited" />
+    {mapError && <p className="td-country-map__error" role="alert">{mapError}</p>}
+    <button className="td-country-map__reset" type="button" onClick={() => { const map = mapRef.current; if (map) fitWorld(map, 550); onSelectRef.current(null); }}>Return to original map view</button>
     <div className="td-country-map__legend">
       <span><i className="td-country-map__swatch td-country-map__swatch--visited" /> Countries with recorded Memories</span>
       <span><i className="td-country-map__swatch td-country-map__swatch--other" /> Other countries</span>

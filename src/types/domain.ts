@@ -16,6 +16,8 @@ export interface Journey {
   endDate: string;
   anchorPhoto?: JourneyPhoto;
   googlePhotosUrl?: string;
+  /** Missing on historical documents is interpreted as legacy YYZ routing. */
+  distanceEndpointMode?: 'legacy-yyz' | 'explicit';
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;

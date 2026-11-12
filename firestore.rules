@@ -182,6 +182,10 @@ allow update: if signedIn()
         && request.resource.data.startDate is string
         && request.resource.data.endDate is string
         && (
+          !('distanceEndpointMode' in request.resource.data)
+          || request.resource.data.distanceEndpointMode == 'explicit'
+        )
+        && (
           !('anchorPhoto' in request.resource.data)
           || validJourneyAnchorPhoto(request.resource.data.anchorPhoto)
         )

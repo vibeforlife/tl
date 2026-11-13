@@ -918,3 +918,1359 @@
   .td-insight > small { font-size: .58rem; }
 }
 @media (max-width: 360px) { .td-insights__grid { grid-template-columns: 1fr; } .td-insight { min-height: 0; } }
+
+/* ==========================================================================
+   TL-UI-REDESIGN-ATLAS-V1
+   Presentation-only dashboard refresh: editorial atlas / travel journal.
+   No markup, data, calculations, navigation, or interaction changes.
+   ========================================================================== */
+
+.travel-dashboard {
+  --td-cream: #f5f0e5;
+  --td-paper: #e9dfc9;
+  --td-ink: #0a1c27;
+  --td-muted: #aeb8b6;
+  --td-coral: #e78b72;
+  --td-gold: #e4bd70;
+  --td-teal: #69c9bd;
+  --td-lilac: #b5a6ce;
+  --td-blue: #8db9cb;
+  position: relative;
+  isolation: isolate;
+  width: min(1440px, calc(100% - 56px));
+  padding: clamp(30px, 4vw, 58px) 0 54px;
+  color: var(--td-cream);
+}
+
+.travel-dashboard::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: -7vw;
+  left: -7vw;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 84% 8%, rgba(91, 153, 151, .09), transparent 34%),
+    radial-gradient(ellipse at 8% 28%, rgba(216, 173, 111, .055), transparent 28%),
+    repeating-radial-gradient(ellipse at 78% 16%, transparent 0 34px, rgba(183, 202, 188, .025) 35px 36px, transparent 37px 69px);
+  content: "";
+  pointer-events: none;
+}
+
+.td-dashboard-actions {
+  margin-bottom: 28px;
+}
+
+.td-create-journey-trigger,
+.td-empty__action {
+  min-height: 46px;
+  padding: 0 21px;
+  border: 1px solid rgba(228, 189, 112, .72);
+  border-radius: 3px;
+  color: #12252c;
+  background: linear-gradient(115deg, #e8c985, #d7b16b);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  letter-spacing: .035em;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.td-create-journey-trigger:hover,
+.td-empty__action:hover {
+  transform: translateY(-2px);
+  background: #f0d69e;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+}
+
+.td-insights {
+  position: relative;
+  padding: 30px 0 48px;
+  border-top: 1px solid rgba(228, 189, 112, .28);
+  border-bottom: 1px solid rgba(228, 189, 112, .18);
+}
+
+.td-insights::after {
+  position: absolute;
+  top: 24px;
+  right: 5px;
+  width: 86px;
+  height: 86px;
+  border: 1px solid rgba(228, 189, 112, .22);
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg, transparent 49.4%, rgba(228,189,112,.3) 49.8% 50.2%, transparent 50.6%),
+    linear-gradient(90deg, transparent 49.4%, rgba(228,189,112,.3) 49.8% 50.2%, transparent 50.6%),
+    radial-gradient(circle, transparent 0 23px, rgba(228,189,112,.18) 24px 25px, transparent 26px);
+  content: "";
+  opacity: .65;
+  pointer-events: none;
+}
+
+.td-insights__heading {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 25px;
+}
+
+.td-insights__heading .td-kicker,
+.td-heading-row .td-kicker,
+.td-connections .td-kicker {
+  color: var(--td-teal);
+  font-size: .62rem;
+  letter-spacing: .23em;
+}
+
+.td-insights__heading h2 {
+  font-size: clamp(2.6rem, 5vw, 4.6rem);
+  letter-spacing: -.055em;
+  line-height: .98;
+}
+
+.td-insights__heading h2 em,
+.td-heading-row h2 em,
+.td-connections h2 em {
+  color: var(--td-gold);
+}
+
+.td-insights__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-areas:
+    "countries continents distance distance most"
+    "countries journeys places people longest"
+    "countries days days memories memories";
+  grid-auto-rows: minmax(132px, auto);
+  gap: 12px;
+  margin-top: 0;
+}
+
+.td-insight {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 19px 19px 17px;
+  border: 1px solid rgba(224, 218, 197, .15);
+  border-radius: 4px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.012) 68%),
+    rgba(12, 34, 44, .82);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 12px 26px rgba(0,0,0,.09);
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.td-insight::before {
+  position: absolute;
+  right: -28px;
+  bottom: -39px;
+  width: 112px;
+  height: 112px;
+  border: 1px solid rgba(228, 189, 112, .19);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.td-insight::after {
+  position: absolute;
+  right: 17px;
+  bottom: 15px;
+  width: 34px;
+  height: 34px;
+  border: 1px dashed rgba(228, 189, 112, .2);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.td-insight:hover {
+  transform: translateY(-2px);
+  border-color: rgba(228, 189, 112, .4);
+  background-color: rgba(19, 47, 56, .94);
+}
+
+.td-insight:nth-child(1) { grid-area: countries; justify-content: space-between; padding: 23px; background: linear-gradient(155deg, rgba(105,201,189,.17), rgba(12,34,44,.94) 62%); }
+.td-insight:nth-child(2) { grid-area: continents; }
+.td-insight:nth-child(3) { grid-area: distance; background: linear-gradient(120deg, rgba(228,189,112,.15), rgba(12,34,44,.9) 76%); }
+.td-insight:nth-child(4) { grid-area: most; }
+.td-insight:nth-child(5) { grid-area: longest; background: linear-gradient(145deg, rgba(231,139,114,.12), rgba(12,34,44,.9) 78%); }
+.td-insight:nth-child(6) { grid-area: journeys; }
+.td-insight:nth-child(7) { grid-area: places; }
+.td-insight:nth-child(8) { grid-area: people; }
+.td-insight:nth-child(9) { grid-area: days; }
+.td-insight:nth-child(10) { grid-area: memories; background: linear-gradient(145deg, rgba(181,166,206,.12), rgba(12,34,44,.9) 78%); }
+
+.td-insight__label {
+  position: relative;
+  z-index: 1;
+  display: block;
+  min-height: 0;
+  color: rgba(226, 224, 210, .72);
+  font-size: .61rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.td-insight > strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 14px;
+  color: var(--td-cream);
+  font: 400 clamp(1.75rem, 2.6vw, 2.7rem)/1.05 Georgia, "Times New Roman", serif;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+
+.td-insight:nth-child(1) > strong {
+  color: #f2d69d;
+  font-size: clamp(3.2rem, 5.4vw, 5.8rem);
+}
+
+.td-insight:nth-child(3) > strong {
+  color: #f1d49a;
+  font-size: clamp(1.8rem, 3.1vw, 3.2rem);
+}
+
+.td-insight > strong.td-insight__value--text {
+  font-size: clamp(1.12rem, 1.65vw, 1.65rem);
+  line-height: 1.18;
+}
+
+.td-insight > small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 38ch;
+  margin-top: 9px;
+  color: rgba(222, 226, 218, .58);
+  font-size: .64rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.td-insights__note {
+  max-width: 1120px;
+  margin: 19px 0 0;
+  color: rgba(222, 226, 218, .49);
+  font-size: .66rem;
+  line-height: 1.65;
+}
+
+.td-journeys,
+.td-countries,
+.td-moments {
+  position: relative;
+  padding-top: 58px;
+  padding-bottom: 58px;
+  border-top: 1px solid rgba(228, 189, 112, .16);
+}
+
+.td-heading-row {
+  align-items: end;
+  margin-bottom: 27px;
+}
+
+.td-heading-row h2,
+.td-connections h2 {
+  font-size: clamp(2.35rem, 4.5vw, 4rem);
+  letter-spacing: -.05em;
+}
+
+.td-heading-aside,
+.td-journey-count {
+  color: rgba(228, 218, 194, .52);
+  font-size: .59rem;
+  letter-spacing: .16em;
+}
+
+.td-journey-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.td-journey-card {
+  grid-column: span 2;
+  min-height: 340px;
+  border: 1px solid rgba(228, 189, 112, .22);
+  border-radius: 3px;
+  background: #173440;
+  box-shadow: 0 18px 38px rgba(0,0,0,.2);
+}
+
+.td-journey-card:nth-child(1) { grid-column: span 3; min-height: 390px; }
+.td-journey-card:nth-child(2) { grid-column: span 3; min-height: 390px; }
+.td-journey-grid--two .td-journey-card { grid-column: span 3; }
+.td-journey-card__overlay { background: linear-gradient(180deg, rgba(4,14,20,.04) 18%, rgba(4,14,20,.84) 100%); }
+.td-journey-card__index {
+  top: 18px;
+  left: 19px;
+  padding: 7px 9px;
+  border: 1px solid rgba(245,240,229,.36);
+  color: rgba(255,255,255,.88);
+  background: rgba(7,24,32,.24);
+  font-size: .8rem;
+  letter-spacing: .12em;
+}
+.td-journey-card__content { padding: 26px; }
+.td-journey-card__content > span { letter-spacing: .19em; }
+.td-journey-card__content strong { font-size: clamp(1.9rem, 3.1vw, 3rem); }
+.td-journey-card__content small { letter-spacing: .04em; }
+.td-journey-card__arrow { right: 22px; bottom: 23px; color: var(--td-gold); }
+
+.td-countries {
+  padding-top: 56px;
+}
+
+.td-country-layout {
+  grid-template-columns: minmax(0, 1.65fr) minmax(310px, .85fr);
+  gap: 16px;
+}
+
+.td-country-map-panel,
+.td-country-report {
+  border: 1px solid rgba(228, 189, 112, .2);
+  border-radius: 3px;
+  background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+  box-shadow: 0 18px 38px rgba(0,0,0,.12);
+}
+
+.td-country-map-panel {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(105,201,189,.08), transparent 60%),
+    rgba(9, 29, 39, .8);
+}
+
+.td-country-map-panel::before {
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  z-index: 1;
+  color: rgba(228, 189, 112, .55);
+  content: "ATLAS  /  WORLD";
+  font-size: .54rem;
+  font-weight: 800;
+  letter-spacing: .2em;
+  pointer-events: none;
+}
+
+.td-country-map__legend {
+  border-top: 1px solid rgba(228, 189, 112, .12);
+  background: rgba(5, 20, 29, .36);
+}
+
+.td-country-report__heading {
+  padding: 20px 20px 17px;
+  border-bottom-color: rgba(228, 189, 112, .2);
+}
+
+.td-country-report__heading h3 {
+  font-size: 1.45rem;
+}
+
+.td-country-list {
+  scrollbar-color: rgba(105,201,189,.5) rgba(255,255,255,.04);
+  scrollbar-width: thin;
+}
+
+.td-country-row {
+  padding: 14px 17px;
+  border-bottom-color: rgba(228, 218, 194, .08);
+}
+
+.td-country-row:hover,
+.td-country-row.is-selected {
+  background: linear-gradient(90deg, rgba(105,201,189,.12), rgba(105,201,189,.025));
+}
+
+.td-country-row__name strong { color: var(--td-cream); }
+.td-country-row__metrics strong { color: #e9d3a7; }
+
+.td-list-toggle,
+.td-country-map__reset {
+  border-color: rgba(105,201,189,.36);
+  border-radius: 3px;
+  color: var(--td-teal);
+  background: rgba(105,201,189,.055);
+  letter-spacing: .035em;
+}
+
+.td-connections {
+  position: relative;
+  overflow: hidden;
+  margin: 34px 0 24px;
+  padding: clamp(30px, 4vw, 52px);
+  border: 1px solid rgba(228,189,112,.28);
+  border-radius: 3px;
+  background:
+    linear-gradient(110deg, rgba(10,32,42,.95), rgba(19,48,55,.92)),
+    #102a35;
+  box-shadow: 0 20px 48px rgba(0,0,0,.16);
+}
+
+.td-connections::before {
+  right: -80px;
+  top: -140px;
+  width: 390px;
+  height: 390px;
+  border-color: rgba(228,189,112,.15);
+  background: repeating-radial-gradient(circle, transparent 0 25px, rgba(228,189,112,.12) 26px 27px, transparent 28px 52px);
+  opacity: .7;
+}
+
+.td-connections::after {
+  top: 26px;
+  right: 28px;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(228,189,112,.35);
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg, transparent 49%, rgba(228,189,112,.55) 49.5% 50.5%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, rgba(228,189,112,.55) 49.5% 50.5%, transparent 51%);
+  content: "";
+}
+
+.td-connections h2 {
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+}
+
+.td-word-cloud__name {
+  border-color: rgba(228,189,112,.22);
+  border-radius: 2px;
+  background: rgba(4,20,28,.26);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.td-word-cloud__name:hover {
+  transform: translateY(-2px);
+  background: rgba(228,189,112,.1);
+}
+
+.td-moments {
+  padding-top: 55px;
+}
+
+.td-memory-strip {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.td-memory-card {
+  grid-column: span 3;
+  height: 245px;
+  border: 1px solid rgba(228,189,112,.24);
+  border-radius: 2px;
+  box-shadow: 0 14px 32px rgba(0,0,0,.18);
+}
+
+.td-memory-card:nth-child(1) { grid-column: span 4; height: 290px; }
+.td-memory-card:nth-child(2) { grid-column: span 3; margin-top: 28px; }
+.td-memory-card:nth-child(3) { grid-column: span 3; }
+.td-memory-card:nth-child(4) { grid-column: span 2; margin-top: 28px; }
+.td-memory-card--single,
+.td-memory-strip .td-memory-card:only-child { grid-column: span 6; height: 310px; }
+
+.td-memory-card__caption {
+  right: 17px;
+  bottom: 17px;
+  left: 17px;
+}
+
+.td-memory-card__caption strong {
+  font-size: 1.2rem;
+}
+
+.td-footer {
+  margin-top: 50px;
+  padding-top: 19px;
+  border-top-color: rgba(228,189,112,.24);
+  color: rgba(228,218,194,.48);
+}
+
+.td-footer span:first-child {
+  color: var(--td-gold);
+  letter-spacing: .24em;
+}
+
+.td-empty {
+  border-color: rgba(228,189,112,.3);
+  background:
+    radial-gradient(circle at 50% 0, rgba(105,201,189,.08), transparent 55%),
+    rgba(255,255,255,.018);
+}
+
+.td-empty__ornament { color: var(--td-gold); }
+
+.td-person-popup {
+  border-color: rgba(228,189,112,.32);
+  background:
+    radial-gradient(ellipse at 100% 0, rgba(105,201,189,.12), transparent 45%),
+    #102b37;
+}
+
+.td-person-popup__profile {
+  color: #12252c;
+  background: var(--td-gold);
+}
+
+@media (max-width: 1100px) {
+  .td-insights__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas:
+      "countries countries continents distance"
+      "countries countries most most"
+      "journeys places people longest"
+      "days days memories memories";
+  }
+
+  .td-country-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .travel-dashboard {
+    width: min(100% - 32px, 680px);
+    padding-top: 25px;
+  }
+
+  .td-insights {
+    padding-top: 23px;
+  }
+
+  .td-insights::after {
+    top: 18px;
+    width: 54px;
+    height: 54px;
+  }
+
+  .td-insights__heading h2 {
+    font-size: clamp(2.5rem, 11vw, 3.8rem);
+  }
+
+  .td-insights__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "countries countries"
+      "continents distance"
+      "most longest"
+      "journeys places"
+      "people days"
+      "memories memories";
+    grid-auto-rows: minmax(125px, auto);
+    gap: 9px;
+  }
+
+  .td-insight,
+  .td-insight:nth-child(1) {
+    min-height: 125px;
+    padding: 15px;
+  }
+
+  .td-insight:nth-child(1) {
+    min-height: 150px;
+  }
+
+  .td-insight:nth-child(1) > strong {
+    font-size: 4rem;
+  }
+
+  .td-insight > strong {
+    font-size: clamp(1.45rem, 6vw, 2rem);
+  }
+
+  .td-insight:nth-child(3) > strong {
+    font-size: clamp(1.35rem, 5.2vw, 1.85rem);
+  }
+
+  .td-insight > strong.td-insight__value--text {
+    font-size: 1.08rem;
+  }
+
+  .td-insight > small {
+    font-size: .59rem;
+  }
+
+  .td-journeys,
+  .td-countries,
+  .td-moments {
+    padding-top: 39px;
+    padding-bottom: 40px;
+  }
+
+  .td-journey-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .td-journey-card,
+  .td-journey-card:nth-child(1),
+  .td-journey-card:nth-child(2),
+  .td-journey-grid--two .td-journey-card {
+    grid-column: auto;
+    min-height: 250px;
+  }
+
+  .td-journey-card__content {
+    padding: 16px;
+  }
+
+  .td-journey-card__content strong {
+    font-size: clamp(1.4rem, 5vw, 1.9rem);
+  }
+
+  .td-country-map {
+    min-height: 330px;
+  }
+
+  .td-country-map__canvas {
+    min-height: 290px;
+  }
+
+  .td-connections {
+    margin-top: 22px;
+    padding: 27px 21px;
+  }
+
+  .td-connections::after {
+    top: 18px;
+    right: 17px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .td-connections__content {
+    max-width: 100%;
+  }
+
+  .td-memory-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .td-memory-card,
+  .td-memory-card:nth-child(1),
+  .td-memory-card:nth-child(2),
+  .td-memory-card:nth-child(3),
+  .td-memory-card:nth-child(4),
+  .td-memory-card--single,
+  .td-memory-strip .td-memory-card:only-child {
+    grid-column: auto;
+    height: 190px;
+    margin-top: 0;
+  }
+
+  .td-memory-card:nth-child(1) {
+    grid-column: span 2;
+    height: 230px;
+  }
+}
+
+@media (max-width: 390px) {
+  .travel-dashboard {
+    width: min(100% - 24px, 680px);
+  }
+
+  .td-insights__grid {
+    gap: 7px;
+  }
+
+  .td-insight,
+  .td-insight:nth-child(1) {
+    padding: 12px;
+  }
+
+  .td-insight__label {
+    font-size: .56rem;
+  }
+
+  .td-insight > small {
+    font-size: .55rem;
+  }
+
+  .td-journey-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .td-journey-card,
+  .td-journey-card:nth-child(1),
+  .td-journey-card:nth-child(2) {
+    min-height: 260px;
+  }
+
+  .td-memory-card:nth-child(1) {
+    grid-column: span 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-insight,
+  .td-create-journey-trigger,
+  .td-empty__action,
+  .td-word-cloud__name {
+    transition: none;
+  }
+
+  .td-insight:hover,
+  .td-word-cloud__name:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   TL-UI-REDESIGN-POSTCARD-V2
+   Bold, varied, illustrated travel-poster treatment.
+   CSS only: existing content, data, interactions and behaviour are retained.
+   ========================================================================== */
+
+.travel-dashboard {
+  --td-poster-ink: #10212d;
+  --td-poster-paper: #fff3dc;
+  --td-poster-coral: #ff785f;
+  --td-poster-orange: #ffad55;
+  --td-poster-sun: #ffd66f;
+  --td-poster-aqua: #68e0d0;
+  --td-poster-blue: #72b9f4;
+  --td-poster-violet: #b59af6;
+  --td-poster-pink: #f58bb7;
+}
+
+/* Insight cards are now individual travel posters, not a uniform tile set. */
+.td-insights__grid {
+  gap: 13px;
+  grid-auto-rows: minmax(145px, auto);
+}
+
+.td-insight {
+  isolation: isolate;
+  min-height: 145px;
+  padding: 20px 21px;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 15px 34px rgba(0,0,0,.2);
+  transform: translateZ(0);
+}
+
+.td-insight::before {
+  z-index: -1;
+  top: auto;
+  right: 7px;
+  bottom: 3px;
+  display: block;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  color: rgba(255,255,255,.2);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: clamp(4.2rem, 7vw, 7.5rem);
+  line-height: 1;
+  opacity: .88;
+  filter: saturate(1.15);
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+
+.td-insight::after {
+  z-index: -1;
+  top: 12px;
+  right: 12px;
+  bottom: auto;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg, transparent 49%, rgba(255,255,255,.22) 49.5% 50.5%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, rgba(255,255,255,.22) 49.5% 50.5%, transparent 51%);
+  opacity: .7;
+  pointer-events: none;
+}
+
+.td-insight:hover {
+  transform: translateY(-4px) rotate(-.25deg);
+  border-color: rgba(255,255,255,.55);
+  box-shadow: 0 22px 42px rgba(0,0,0,.3);
+}
+
+.td-insight__label {
+  color: rgba(255,255,255,.88);
+  font-size: .65rem;
+  letter-spacing: .15em;
+  text-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+
+.td-insight > strong {
+  color: #fff8e9;
+  font-size: clamp(2rem, 3vw, 3.1rem);
+  text-shadow: 0 3px 15px rgba(0,0,0,.22);
+}
+
+.td-insight > strong.td-insight__value--text {
+  color: #fff8e9;
+  font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+}
+
+.td-insight > small {
+  max-width: 34ch;
+  color: rgba(255,255,255,.82);
+  text-shadow: 0 1px 5px rgba(0,0,0,.2);
+}
+
+/* 01 — Countries: tropical atlas / globe */
+.td-insight:nth-child(1) {
+  background:
+    radial-gradient(ellipse at 88% 25%, rgba(194,255,207,.36), transparent 28%),
+    radial-gradient(ellipse at 12% 90%, rgba(20,87,100,.68), transparent 45%),
+    repeating-linear-gradient(125deg, transparent 0 17px, rgba(255,255,255,.045) 18px 19px, transparent 20px 36px),
+    linear-gradient(145deg, #087f78 0%, #07566b 52%, #123d5a 100%);
+}
+.td-insight:nth-child(1)::before {
+  content: "🌎";
+  right: -4px;
+  bottom: 23%;
+  font-size: clamp(6.5rem, 10vw, 10rem);
+  opacity: .92;
+  transform: rotate(-17deg);
+}
+.td-insight:nth-child(1)::after {
+  top: 17px;
+  right: 17px;
+  width: 78px;
+  height: 78px;
+  border: 1px dashed rgba(255,255,255,.4);
+}
+
+/* 02 — Continents: bold blue expedition map */
+.td-insight:nth-child(2) {
+  background:
+    radial-gradient(circle at 85% 18%, rgba(255,255,255,.26), transparent 25%),
+    repeating-linear-gradient(45deg, transparent 0 12px, rgba(255,255,255,.06) 13px 14px, transparent 15px 28px),
+    linear-gradient(135deg, #2455a8, #287ec0 58%, #39a9bd);
+}
+.td-insight:nth-child(2)::before { content: "🧭"; }
+.td-insight:nth-child(2)::after { border-color: rgba(255,255,255,.38); }
+
+/* 03 — Distance: flight path through a glowing sunset */
+.td-insight:nth-child(3) {
+  background:
+    radial-gradient(ellipse at 82% 8%, rgba(255,235,167,.7), transparent 24%),
+    radial-gradient(ellipse at 10% 100%, rgba(255,99,91,.52), transparent 43%),
+    repeating-linear-gradient(165deg, transparent 0 21px, rgba(255,255,255,.06) 22px 23px, transparent 24px 45px),
+    linear-gradient(115deg, #a63f57 0%, #df654d 48%, #f1a64d 100%);
+}
+.td-insight:nth-child(3)::before {
+  content: "✈️";
+  right: 18px;
+  bottom: -2px;
+  font-size: clamp(5rem, 7vw, 7.8rem);
+  opacity: .78;
+  transform: rotate(-13deg);
+}
+.td-insight:nth-child(3)::after {
+  top: auto;
+  right: 14%;
+  bottom: 33px;
+  width: 46%;
+  height: 2px;
+  border: 0;
+  border-top: 2px dashed rgba(255,255,255,.58);
+  border-radius: 0;
+  background: none;
+  transform: rotate(-9deg);
+}
+
+/* 04 — Most visited: destination award / travel badge */
+.td-insight:nth-child(4) {
+  background:
+    radial-gradient(circle at 84% 22%, rgba(255,232,166,.32), transparent 28%),
+    linear-gradient(145deg, #a64d72, #743f80 62%, #473c78);
+}
+.td-insight:nth-child(4)::before { content: "🏆"; }
+.td-insight:nth-child(4)::after {
+  width: 76px;
+  height: 76px;
+  border: 2px dashed rgba(255,225,185,.42);
+}
+
+/* 05 — Longest journey: deep purple expedition journal */
+.td-insight:nth-child(5) {
+  background:
+    radial-gradient(ellipse at 88% 10%, rgba(255,255,255,.2), transparent 30%),
+    repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,.05) 19px 20px, transparent 21px 38px),
+    linear-gradient(145deg, #533c9d, #7652b8 54%, #b35e9d);
+}
+.td-insight:nth-child(5)::before { content: "🗓️"; }
+
+/* 06 — Journeys: warm luggage / ticket palette */
+.td-insight:nth-child(6) {
+  background:
+    radial-gradient(circle at 86% 16%, rgba(255,239,191,.32), transparent 27%),
+    linear-gradient(135deg, #b75b31, #dc8140 54%, #e9a64e);
+}
+.td-insight:nth-child(6)::before { content: "🧳"; }
+
+/* 07 — Places: turquoise location map */
+.td-insight:nth-child(7) {
+  background:
+    radial-gradient(ellipse at 86% 16%, rgba(218,255,235,.32), transparent 27%),
+    repeating-linear-gradient(35deg, transparent 0 16px, rgba(255,255,255,.07) 17px 18px, transparent 19px 34px),
+    linear-gradient(140deg, #087c83, #16a6a0 55%, #56b7a1);
+}
+.td-insight:nth-child(7)::before { content: "📍"; }
+
+/* 08 — People: bright coral / festival postcard */
+.td-insight:nth-child(8) {
+  background:
+    radial-gradient(circle at 84% 18%, rgba(255,230,233,.3), transparent 26%),
+    repeating-linear-gradient(120deg, transparent 0 24px, rgba(255,255,255,.06) 25px 27px, transparent 28px 48px),
+    linear-gradient(135deg, #bd3e68, #e65f77 58%, #e58a75);
+}
+.td-insight:nth-child(8)::before { content: "👥"; }
+
+/* 09 — Days: midnight blue calendar / night sky */
+.td-insight:nth-child(9) {
+  background:
+    radial-gradient(circle at 86% 17%, rgba(255,255,255,.22), transparent 24%),
+    radial-gradient(circle at 12% 110%, rgba(111,162,255,.38), transparent 45%),
+    linear-gradient(135deg, #253e8b, #365eb4 58%, #477ec5);
+}
+.td-insight:nth-child(9)::before { content: "📆"; }
+
+/* 10 — Memories: golden scrapbook / keepsake */
+.td-insight:nth-child(10) {
+  background:
+    radial-gradient(ellipse at 88% 15%, rgba(255,247,206,.4), transparent 26%),
+    repeating-linear-gradient(45deg, transparent 0 15px, rgba(255,255,255,.07) 16px 17px, transparent 18px 33px),
+    linear-gradient(135deg, #92532f, #bd793f 50%, #b78a4c);
+}
+.td-insight:nth-child(10)::before { content: "📖"; }
+
+/* Make the poster motifs visible without sacrificing legibility. */
+.td-insight:nth-child(n+2)::before {
+  opacity: .78;
+  filter: drop-shadow(0 5px 9px rgba(0,0,0,.14));
+}
+
+.td-insight:nth-child(2) > strong,
+.td-insight:nth-child(4) > strong,
+.td-insight:nth-child(5) > strong,
+.td-insight:nth-child(6) > strong,
+.td-insight:nth-child(7) > strong,
+.td-insight:nth-child(8) > strong,
+.td-insight:nth-child(9) > strong,
+.td-insight:nth-child(10) > strong {
+  color: #fff9ed;
+}
+
+/* Give the other dashboard sections their own travel-poster details. */
+.td-heading-row .td-kicker::before {
+  content: "✦";
+  margin-right: 3px;
+  color: var(--td-poster-orange);
+  font-size: .9rem;
+}
+
+.td-journey-card {
+  border: 2px solid rgba(255,224,174,.42);
+  border-radius: 8px;
+  box-shadow: 0 18px 38px rgba(0,0,0,.28);
+}
+
+.td-journey-card::after {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg, transparent 49%, rgba(255,255,255,.5) 49.5% 50.5%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, rgba(255,255,255,.5) 49.5% 50.5%, transparent 51%);
+  content: "";
+  opacity: .72;
+  pointer-events: none;
+}
+
+.td-journey-card__index {
+  border: 1px solid rgba(255,255,255,.62);
+  border-radius: 2px;
+  background: rgba(12,27,38,.48);
+  backdrop-filter: blur(5px);
+}
+
+.td-journey-card__content > span {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,218,150,.55);
+  border-radius: 2px;
+  color: #ffe0a1;
+  background: rgba(20,30,37,.35);
+}
+
+.td-country-map-panel {
+  overflow: hidden;
+  border: 2px solid rgba(105,201,189,.35);
+  background:
+    radial-gradient(ellipse at 48% 48%, rgba(52,166,156,.2), transparent 60%),
+    repeating-radial-gradient(ellipse at 50% 50%, transparent 0 25px, rgba(105,201,189,.075) 26px 27px, transparent 28px 52px),
+    #0b2d3c;
+}
+
+.td-country-report {
+  border: 1px solid rgba(228,189,112,.34);
+  background:
+    linear-gradient(160deg, rgba(184,114,63,.12), transparent 42%),
+    rgba(10,29,39,.9);
+}
+
+.td-connections {
+  border: 2px solid rgba(245,139,183,.48);
+  background:
+    radial-gradient(circle at 8% 100%, rgba(245,139,183,.28), transparent 38%),
+    radial-gradient(circle at 92% 0%, rgba(114,185,244,.28), transparent 38%),
+    linear-gradient(120deg, #35285f, #733b70 56%, #9a4c62);
+}
+
+.td-connections .td-kicker {
+  color: #ffd6a0;
+}
+
+.td-word-cloud__name {
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 3px;
+  color: #fff6e7;
+  background: rgba(20,17,48,.2);
+  text-shadow: 0 2px 9px rgba(0,0,0,.22);
+}
+
+.td-word-cloud__name--1,
+.td-word-cloud__name--2,
+.td-word-cloud__name--3,
+.td-word-cloud__name--4,
+.td-word-cloud__name--5 {
+  color: #fff6e7;
+}
+
+.td-memory-card {
+  border: 2px solid rgba(255,224,174,.55);
+  border-radius: 5px;
+  box-shadow: 0 16px 34px rgba(0,0,0,.28);
+}
+
+.td-memory-card:nth-child(odd) {
+  transform: rotate(-1.2deg);
+}
+
+.td-memory-card:nth-child(even) {
+  transform: rotate(1.1deg) translateY(17px);
+}
+
+.td-memory-card:hover {
+  z-index: 2;
+  transform: translateY(-4px) rotate(0);
+}
+
+.td-memory-card__caption strong {
+  text-shadow: 0 2px 12px rgba(0,0,0,.5);
+}
+
+.td-empty {
+  border: 1px dashed rgba(255,214,111,.6);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(255,120,95,.16), transparent 55%),
+    linear-gradient(135deg, rgba(35,83,103,.5), rgba(90,53,104,.24));
+}
+
+.td-footer {
+  border-top: 1px dashed rgba(228,189,112,.36);
+}
+
+@media (max-width: 760px) {
+  .td-insight::before {
+    right: 1px;
+    bottom: 0;
+    font-size: 4.3rem;
+  }
+
+  .td-insight:nth-child(1)::before {
+    right: -2px;
+    bottom: 16%;
+    font-size: 6.5rem;
+  }
+
+  .td-insight:nth-child(3)::before {
+    right: 3px;
+    font-size: 4.8rem;
+  }
+
+  .td-insight::after {
+    width: 48px;
+    height: 48px;
+  }
+
+  .td-journey-card::after {
+    width: 40px;
+    height: 40px;
+  }
+
+  .td-memory-card:nth-child(odd),
+  .td-memory-card:nth-child(even) {
+    transform: none;
+  }
+
+  .td-memory-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-insight:hover,
+  .td-memory-card:hover {
+    transform: none;
+  }
+}
+/* Restored original dashboard People section: midnight explorer visual theme.
+   Scenic artwork + presentation only; existing markup and interactions remain intact. */
+.td-connections {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(26px, 3.2vw, 46px);
+  min-height: 390px;
+  padding: clamp(30px, 3.6vw, 52px);
+  overflow: hidden;
+  border: 1px solid rgba(83, 180, 213, .68);
+  border-radius: 20px;
+  color: #f5eee2;
+  background-color: #061a2c;
+  background-image:
+    linear-gradient(90deg, rgba(4, 19, 33, .12) 0%, rgba(4, 19, 33, .10) 34%, rgba(4, 19, 33, .78) 58%, #061a2c 100%),
+    url('/travel-lore-people-art.webp'),
+    radial-gradient(ellipse at 100% 0%, rgba(171, 75, 53, .18), transparent 32%),
+    linear-gradient(115deg, #071b2e 0%, #031629 58%, #071525 100%);
+  background-repeat: no-repeat;
+  background-position: center, left bottom, center, center;
+  background-size: 100% 100%, 59% 100%, 100% 100%, 100% 100%;
+  box-shadow:
+    0 18px 48px rgba(1, 10, 21, .28),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.td-connections::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .17;
+  background:
+    radial-gradient(ellipse at 22% 22%, transparent 0 17%, rgba(115, 143, 157, .22) 17.15% 17.35%, transparent 17.5% 24%, rgba(115, 143, 157, .15) 24.15% 24.3%, transparent 24.5%),
+    repeating-linear-gradient(0deg, transparent 0 35px, rgba(119, 158, 174, .05) 36px, transparent 37px);
+  mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.45) 34%, transparent 68%);
+}
+
+.td-connections::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: auto;
+  right: -68px;
+  bottom: -112px;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(255, 167, 93, .17);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 18px rgba(255, 167, 93, .035),
+    0 0 0 40px rgba(255, 167, 93, .025),
+    0 0 0 66px rgba(255, 167, 93, .018);
+  pointer-events: none;
+}
+
+.td-connections > div:first-child {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 42%;
+  max-width: 540px;
+  min-width: 0;
+}
+
+.td-connections > div:first-child .td-kicker {
+  color: #19d8c7;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+
+.td-connections h2 {
+  color: #f7f0e4;
+  font-size: clamp(2.55rem, 4.15vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, .28);
+}
+
+.td-connections h2 em {
+  color: #ffb33f;
+}
+
+.td-connections__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 1 1 54%;
+  justify-items: stretch;
+  gap: 18px;
+  max-width: 900px;
+  min-width: 0;
+}
+
+.td-word-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.td-word-cloud__name {
+  padding: 8px 13px 9px;
+  border: 1px solid rgba(145, 174, 194, .58);
+  border-radius: 999px;
+  color: #d8e7f1;
+  background: rgba(5, 24, 42, .76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.05;
+  transition: transform 170ms ease, border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
+}
+
+.td-word-cloud__name:hover {
+  transform: translateY(-2px);
+  color: #fff8ed;
+  background: rgba(20, 48, 68, .96);
+  border-color: currentColor;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .22), 0 0 13px rgba(48, 205, 196, .12);
+}
+
+.td-word-cloud__name--1 { color: #ff927f; border-color: rgba(255, 112, 86, .78); }
+.td-word-cloud__name--2 { color: #ffc45c; border-color: rgba(255, 184, 63, .72); }
+.td-word-cloud__name--3 { color: #22d9c8; border-color: rgba(34, 217, 200, .72); }
+.td-word-cloud__name--4 { color: #d0b5ff; border-color: rgba(190, 157, 255, .72); }
+.td-word-cloud__name--5 { color: #ffb1ad; border-color: rgba(255, 145, 137, .68); }
+
+.td-connections__total {
+  color: rgba(226, 232, 239, .66);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.td-people-all {
+  width: 100%;
+  color: #dce7ed;
+  font-size: .78rem;
+}
+
+.td-people-all summary {
+  width: fit-content;
+  color: #20d9c9;
+  cursor: pointer;
+  font-weight: 800;
+  transition: color 150ms ease;
+}
+
+.td-people-all summary:hover {
+  color: #8ff7e9;
+}
+
+.td-people-all ul {
+  margin-top: 14px;
+}
+
+.td-people-all li button {
+  color: #e4edf2;
+  background: rgba(255, 255, 255, .045);
+  border-color: rgba(155, 184, 201, .16);
+}
+
+@media (max-width: 900px) {
+  .td-connections {
+    min-height: 0;
+    background-size: 100% 100%, 78% auto, 100% 100%, 100% 100%;
+  }
+
+  .td-connections > div:first-child {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  .td-connections h2 {
+    font-size: clamp(2.35rem, 6vw, 3.5rem);
+  }
+
+  .td-connections__content {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .td-connections {
+    gap: 22px;
+    padding: 25px 20px;
+    background-image:
+      linear-gradient(180deg, rgba(4, 19, 33, .12) 0%, rgba(4, 19, 33, .30) 38%, #061a2c 72%),
+      url('/travel-lore-people-art.webp'),
+      linear-gradient(115deg, #071b2e 0%, #031629 58%, #071525 100%);
+    background-position: center, left top, center;
+    background-size: 100% 100%, 100% auto, 100% 100%;
+  }
+
+  .td-connections h2 {
+    font-size: clamp(2.1rem, 10vw, 3rem);
+  }
+
+  .td-word-cloud {
+    gap: 8px;
+  }
+
+  .td-word-cloud__name {
+    padding: 7px 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-word-cloud__name {
+    transition: none;
+  }
+  .td-word-cloud__name:hover {
+    transform: none;
+  }
+}
+
+/* Remove decorative circular overlays from dashboard cards. */
+.td-stat::after,
+.td-insight::after,
+.td-journey-card::after {
+  display: none !important;
+}

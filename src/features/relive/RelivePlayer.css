@@ -560,3 +560,65 @@
     height: 100%;
   }
 }
+
+/* Relive closing scene: compact lower-left title panel. */
+.relive-title-scene--closing .relive-title-scene__content {
+  position: absolute;
+  left: clamp(24px, 6vw, 90px);
+  bottom: clamp(150px, 18vh, 210px);
+  width: min(440px, 42vw);
+  margin: 0;
+  padding: 18px 22px;
+  border-radius: 12px;
+  text-align: left;
+  transform: none;
+  background: rgba(4, 12, 16, .48);
+  backdrop-filter: blur(5px);
+}
+
+.relive-title-scene--closing .relive-title-scene__eyebrow {
+  margin-bottom: 12px;
+}
+
+.relive-title-scene--closing .relive-title-scene__rule {
+  margin-bottom: 13px;
+}
+
+.relive-title-scene--closing h1 {
+  font-size: clamp(32px, 3.2vw, 46px);
+  line-height: 1.05;
+}
+
+.relive-title-scene--closing .relive-title-scene__content > p:last-of-type {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.relive-title-scene--closing .relive-title-scene__dates {
+  display: block;
+  margin-top: 9px;
+  font-size: 11px;
+}
+
+.relive-title-scene--closing .relive-title-scene__seal {
+  margin-top: 11px;
+}
+
+@media (max-width: 800px) {
+  .relive-title-scene--closing .relive-title-scene__content {
+    left: 18px;
+    bottom: 145px;
+    width: min(78vw, 380px);
+    padding: 15px 17px;
+  }
+
+  .relive-title-scene--closing h1 {
+    font-size: clamp(28px, 7vw, 38px);
+  }
+
+  .relive-title-scene--closing .relive-title-scene__content > p:last-of-type {
+    font-size: 11px;
+  }
+}
+

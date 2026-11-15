@@ -288,6 +288,68 @@ allow update: if signedIn()
 
         allow delete: if canEditJourney(journeyId);
       }
+
+      // Relive presentation configuration is private to the Journey owner.
+      // Editors can continue editing Memories but cannot change the presentation.
+      match /relives/{reliveId} {
+        function validReliveConfiguration(data) {
+          return data.keys().hasOnly([
+              'ownerId',
+              'title',
+              'schemaVersion',
+              'selectionMode',
+              'selectedEntryIds',
+              'durationMode',
+              'musicEnabled',
+              'soundtrackId',
+              'chapterMode',
+              'createdAt',
+              'updatedAt'
+            ])
+            && data.ownerId is string
+            && data.title is string
+            && data.title.size() > 0
+            && data.title.size() <= 100
+            && data.schemaVersion == 1
+            && data.selectionMode in ['automatic', 'curated']
+            && data.selectedEntryIds is list
+            && (
+              (data.selectionMode == 'curated' && data.selectedEntryIds.size() > 0)
+              || (data.selectionMode == 'automatic' && data.selectedEntryIds.size() == 0)
+            )
+            && data.durationMode in ['highlights', 'journey', 'complete']
+            && data.musicEnabled is bool
+            && data.chapterMode == 'automatic'
+            && (!('soundtrackId' in data) || data.soundtrackId is string)
+            && data.createdAt is timestamp
+            && data.updatedAt is timestamp;
+        }
+
+        allow read: if isJourneyOwner(journeyId);
+
+        allow create: if isJourneyOwner(journeyId)
+          && request.resource.data.ownerId == request.auth.uid
+          && validReliveConfiguration(request.resource.data);
+
+        allow update: if isJourneyOwner(journeyId)
+          && resource.data.ownerId == request.auth.uid
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'title',
+            'schemaVersion',
+            'selectionMode',
+            'selectedEntryIds',
+            'durationMode',
+            'musicEnabled',
+            'soundtrackId',
+            'chapterMode',
+            'updatedAt'
+          ])
+          && validReliveConfiguration(request.resource.data);
+
+        allow delete: if isJourneyOwner(journeyId)
+          && resource.data.ownerId == request.auth.uid;
+      }
     }
 
     match /invitations/{invitationId} {

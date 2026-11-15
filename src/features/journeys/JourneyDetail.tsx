@@ -34,9 +34,16 @@ import {
 } from './navigationState';
 import { buildJustifiedRows } from './albumLayout';
 import { JourneyExportDialog } from '../journey-export/JourneyExportDialog';
+import { RelivePreparation } from '../relive/RelivePreparation';
+import type { ReliveConfiguration } from '../../types/domain';
 const JourneyMap = lazy(() =>
   import('./JourneyMap').then(({ JourneyMap }) => ({
     default: JourneyMap,
+  })),
+);
+const RelivePlayer = lazy(() =>
+  import('../relive/RelivePlayer').then(({ RelivePlayer: Player }) => ({
+    default: Player,
   })),
 );
 
@@ -87,6 +94,8 @@ export function JourneyDetail({
 }) {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [isJourneyExportOpen, setIsJourneyExportOpen] = useState(false);
+  const [isReliveOpen, setIsReliveOpen] = useState(false);
+  const [activeRelive, setActiveRelive] = useState<ReliveConfiguration | null>(null);
   const [journeyRole, setJourneyRole] = useState<JourneyRole | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -890,6 +899,16 @@ export function JourneyDetail({
             >
               Export PDF
             </button>
+
+            {journeyRole === 'owner' && (
+              <button
+                className="journey-management__button relive-launch-button"
+                type="button"
+                onClick={() => setIsReliveOpen(true)}
+              >
+                ✦ Relive this Journey
+              </button>
+            )}
 
             {canShareJourney && (
               <>
@@ -1842,6 +1861,28 @@ export function JourneyDetail({
           entries={entries}
           onClose={() => setIsJourneyExportOpen(false)}
         />
+      )}
+      {isReliveOpen && journey && journeyRole === 'owner' && (
+        <RelivePreparation
+          journey={journey}
+          entries={entries}
+          ownerId={user.uid}
+          onClose={() => setIsReliveOpen(false)}
+          onPlay={(configuration) => {
+            setIsReliveOpen(false);
+            setActiveRelive(configuration);
+          }}
+        />
+      )}
+      {activeRelive && journey && (
+        <Suspense fallback={<div className="relive-player-loading" role="status">Preparing your film…</div>}>
+          <RelivePlayer
+            journey={journey}
+            entries={entries}
+            configuration={activeRelive}
+            onClose={() => setActiveRelive(null)}
+          />
+        </Suspense>
       )}
       {selectedAlbumEntry?.photo && (
         <div

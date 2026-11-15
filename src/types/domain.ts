@@ -143,3 +143,25 @@ export interface Invitation {
   createdAt: Timestamp;
   acceptedAt?: Timestamp;
 }
+
+/** Owner-controlled configuration for the single V1 Relive attached to a Journey. */
+export type ReliveSelectionMode = 'automatic' | 'curated';
+export type ReliveDurationMode = 'highlights' | 'journey' | 'complete';
+
+export interface ReliveConfiguration {
+  id: string;
+  journeyId: string;
+  ownerId: string;
+  title: string;
+  schemaVersion: 1;
+  selectionMode: ReliveSelectionMode;
+  /** Used only when selectionMode is 'curated'. */
+  selectedEntryIds: string[];
+  durationMode: ReliveDurationMode;
+  musicEnabled: boolean;
+  /** Reserved for a future curated, licensed soundtrack catalogue. */
+  soundtrackId?: string;
+  chapterMode: 'automatic';
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}

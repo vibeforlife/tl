@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
+<g transform="rotate(-13 240 240)" fill="none" stroke="#ffe7c1">
+<rect x="66" y="82" width="350" height="316" rx="18" stroke-width="9" stroke-dasharray="3 10"/>
+<rect x="86" y="102" width="310" height="276" rx="12" stroke-width="2"/>
+<circle cx="240" cy="218" r="104" stroke-width="5"/>
+<circle cx="240" cy="218" r="86" stroke-width="2" stroke-dasharray="6 8"/>
+<path d="M240 130l22 67 67 21-67 22-22 67-22-67-67-22 67-21z" fill="#ffe7c1" fill-opacity=".22" stroke-width="3"/>
+<path d="M110 330h260M130 350h220" stroke-width="4"/>
+</g>
+<g fill="#ffe7c1" font-family="Georgia,serif" text-anchor="middle"><text x="240" y="76" font-size="28" letter-spacing="5">PASSPORT</text><text x="240" y="425" font-size="23" letter-spacing="4">TRAVEL EDITION</text></g>
+</svg>

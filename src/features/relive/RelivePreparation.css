@@ -1,0 +1,465 @@
+.relive-launch-button {
+  border: 1px solid rgba(216, 177, 119, 0.72);
+  background: linear-gradient(135deg, rgba(28, 43, 53, 0.96), rgba(14, 26, 35, 0.98));
+  color: #f4e7d2;
+  letter-spacing: 0.015em;
+}
+
+.relive-launch-button:hover {
+  border-color: #e5c18b;
+  background: linear-gradient(135deg, #263b48, #172a36);
+}
+
+.relive-modal {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.relive-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(5, 10, 15, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.relive-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(900px, calc(100dvh - 48px));
+  overflow: hidden;
+  border: 1px solid rgba(210, 190, 160, 0.22);
+  border-radius: 20px;
+  background: #111b23;
+  color: #f4f0e9;
+  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.5);
+}
+
+.relive-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 30px 32px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(49, 117, 119, 0.2), transparent 50%),
+    #14212a;
+}
+
+.relive-eyebrow,
+.relive-estimate__label {
+  margin: 0 0 8px;
+  color: #cba878;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.relive-panel__header h2 {
+  margin: 0;
+  color: #fffaf2;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.relive-panel__subtitle {
+  margin: 8px 0 0;
+  color: #b8c3c7;
+  font-size: 0.9rem;
+}
+
+.relive-panel__close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: transparent;
+  color: #f4f0e9;
+  font-size: 1.55rem;
+  cursor: pointer;
+}
+
+.relive-panel__body {
+  overflow-y: auto;
+  padding: 4px 32px 28px;
+}
+
+.relive-section {
+  padding: 25px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.relive-section__heading {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.relive-section__number {
+  padding-top: 3px;
+  color: #cba878;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.relive-section__heading h3 {
+  margin: 0;
+  color: #fffaf2;
+  font-size: 1.08rem;
+  font-weight: 650;
+}
+
+.relive-section__heading p {
+  margin: 5px 0 0;
+  color: #aebbc1;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.relive-choice-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.relive-choice,
+.relive-duration-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.relive-choice.is-selected,
+.relive-duration-option.is-selected {
+  border-color: rgba(101, 180, 166, 0.8);
+  background: rgba(42, 112, 105, 0.16);
+}
+
+.relive-choice input,
+.relive-duration-option input,
+.relive-memory-option input {
+  flex: 0 0 auto;
+  margin: 3px 0 0;
+  accent-color: #72b7a8;
+}
+
+.relive-choice span,
+.relive-duration-option__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.relive-choice strong,
+.relive-duration-option strong {
+  color: #f7f1e8;
+  font-size: 0.9rem;
+}
+
+.relive-choice small,
+.relive-duration-option small {
+  color: #aebbc1;
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
+.relive-memory-summary {
+  margin-top: 16px;
+  color: #dce5e4;
+  font-size: 0.82rem;
+}
+
+.relive-memory-list {
+  display: grid;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.relive-memory-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.relive-memory-option:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.relive-memory-option img,
+.relive-memory-option__placeholder {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 42px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.relive-memory-option__placeholder {
+  display: grid;
+  place-items: center;
+  background: #263944;
+  color: #cba878;
+}
+
+.relive-memory-option__details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 4px;
+}
+
+.relive-memory-option__details strong {
+  overflow: hidden;
+  color: #f4f0e9;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relive-memory-option__details small {
+  overflow: hidden;
+  color: #aebbc1;
+  font-size: 0.73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relive-empty,
+.relive-note {
+  margin: 10px 0 0;
+  color: #aebbc1;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.relive-duration-options {
+  display: grid;
+  gap: 9px;
+}
+
+.relive-duration-option {
+  align-items: center;
+}
+
+.relive-duration-option__copy {
+  flex: 1;
+}
+
+.relive-duration-option__check {
+  color: #83c4b3;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.relive-section--music {
+  border-bottom: 0;
+  padding-bottom: 18px;
+}
+
+.relive-estimate {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 20px;
+  align-items: center;
+  padding: 17px 19px;
+  border: 1px solid rgba(203, 168, 120, 0.24);
+  border-radius: 12px;
+  background: rgba(203, 168, 120, 0.07);
+}
+
+.relive-estimate > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.relive-estimate__label {
+  margin: 0;
+  font-size: 0.6rem;
+}
+
+.relive-estimate strong {
+  color: #fff5e5;
+  font-size: 1.05rem;
+}
+
+.relive-estimate p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: #aebbc1;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.relive-panel__status,
+.relive-panel__error,
+.relive-panel__success {
+  margin: 0;
+  padding: 22px 32px;
+  color: #c5d1d4;
+  font-size: 0.9rem;
+}
+
+.relive-panel__error {
+  color: #f0a8a0;
+}
+
+.relive-panel__success {
+  padding-top: 0;
+  padding-bottom: 12px;
+  color: #8bd0b6;
+}
+
+.relive-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  background: #101920;
+}
+
+.relive-owner-note {
+  color: #9eacb2;
+  font-size: 0.72rem;
+}
+
+.relive-panel__footer > div {
+  display: flex;
+  gap: 9px;
+}
+
+.relive-button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.relive-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.relive-button--secondary {
+  border-color: rgba(255, 255, 255, 0.17);
+  background: transparent;
+  color: #e5e9e8;
+}
+
+.relive-button--primary {
+  background: #cba878;
+  color: #17232a;
+}
+
+@media (max-width: 640px) {
+  .relive-modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .relive-panel {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .relive-panel__header {
+    padding: 23px 20px 19px;
+  }
+
+  .relive-panel__body {
+    padding: 0 20px 22px;
+  }
+
+  .relive-choice-row {
+    grid-template-columns: 1fr;
+  }
+
+  .relive-panel__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 15px 20px calc(15px + env(safe-area-inset-bottom));
+  }
+
+  .relive-panel__footer > div {
+    width: 100%;
+  }
+
+  .relive-button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relive-choice,
+  .relive-duration-option {
+    transition: none;
+  }
+}
+
+.relive-title-field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 22px;
+  color: #d5dedf;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.relive-title-field input {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.17);
+  color: #fffaf2;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.relive-title-field input:focus {
+  border-color: #72b7a8;
+  box-shadow: 0 0 0 3px rgba(114, 183, 168, 0.12);
+}

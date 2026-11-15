@@ -229,10 +229,13 @@ export function RelivePlayer({ journey, entries, configuration, onClose }: Props
             key={scene.id}
             className={`relive-title-scene relive-title-scene--${scene.type}`}
           >
-            {coverPhotoUrl && (
+            {coverPhotoUrl && scene.type === 'closing' && (
               <img className="relive-title-scene__cover" src={coverPhotoUrl} alt="" />
             )}
             <div className="relive-title-scene__content">
+              {coverPhotoUrl && scene.type === 'opening' && (
+                <img className="relive-title-scene__cover" src={coverPhotoUrl} alt="" />
+              )}
               <p className="relive-title-scene__eyebrow">
                 {scene.type === 'opening' ? 'A TRAVEL LORE FILM' : 'UNTIL THE NEXT JOURNEY'}
               </p>

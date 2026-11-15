@@ -6,7 +6,6 @@ import {
   buildReliveContextRouteFeatures,
   buildReliveStopFeatures,
   buildReliveTravelledRouteFeatures,
-  getReliveSnapshotCarBearing,
   getReliveUnwrappedStopCoordinates,
 } from './reliveMapData';
 import { getReliveCameraPlan } from './reliveCamera';
@@ -225,14 +224,9 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     [engine],
   );
   const routeProgressByLeg = snapshot.routeProgressByLeg;
-  const activeLegId = snapshot.activeLegId;
   const travelledRouteData = useMemo(
     () => buildReliveTravelledRouteFeatures(engine, routeProgressByLeg),
     [engine, routeProgressByLeg],
-  );
-  const carBearing = useMemo(
-    () => getReliveSnapshotCarBearing(engine, activeLegId, routeProgressByLeg),
-    [engine, activeLegId, routeProgressByLeg],
   );
   const stops = useMemo(
     () => engine.journeyModel?.stops ?? [],
@@ -298,7 +292,7 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
         carMarkerRef.current = new mapboxgl.Marker({
           element: carElement,
           anchor: 'center',
-          rotationAlignment: 'map',
+          rotationAlignment: 'viewport',
         }).setLngLat([0, 20]).addTo(map);
         carElement.style.display = 'none';
         setMapReadyVersion((version) => version + 1);
@@ -357,12 +351,11 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
 
     if (snapshot.carCoordinate) {
       marker.setLngLat(snapshot.carCoordinate);
-      if (carBearing !== null) marker.setRotation(carBearing);
       carElement.style.display = 'grid';
     } else {
       carElement.style.display = 'none';
     }
-  }, [mapReadyVersion, snapshot.carCoordinate, carBearing]);
+  }, [mapReadyVersion, snapshot.carCoordinate]);
 
   // Camera framing is deliberately independent of route reveal and car
   // interpolation. During an incoming leg we frame that leg; after arrival
@@ -374,9 +367,26 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
 
     if (snapshot.scene.type === 'opening') {
       if (lastOpeningOverviewSceneRef.current !== snapshot.sceneIndex) {
-        fitStopOverview(map, stopCoordinates, 1500, 4.2);
+        // Re-submit the complete stop collection for the opening scene, then
+        // wait for Mapbox to finish processing that source before presenting
+        // the overview. This avoids showing the initial atlas without markers.
+        const stopSource = map.getSource('relive-memory-stops') as
+          mapboxgl.GeoJSONSource | undefined;
+        const handleOpeningIdle = () => {
+          if (lastOpeningOverviewSceneRef.current !== snapshot.sceneIndex) return;
+          if (!map.isSourceLoaded('relive-memory-stops')) {
+            map.once('idle', handleOpeningIdle);
+            return;
+          }
+          fitStopOverview(map, stopCoordinates, 1500, 4.2);
+          lastCameraTargetRef.current = 'global';
+        };
+
         lastOpeningOverviewSceneRef.current = snapshot.sceneIndex;
-        lastCameraTargetRef.current = 'global';
+        lastClosingOverviewRef.current = false;
+        map.once('idle', handleOpeningIdle);
+        stopSource?.setData(stopData);
+        map.triggerRepaint();
       }
       lastClosingOverviewRef.current = false;
       return;
@@ -422,6 +432,7 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     snapshot.activeLegId,
     stopCoordinates,
     stopMemoryCounts,
+    stopData,
     stops.length,
   ]);
 

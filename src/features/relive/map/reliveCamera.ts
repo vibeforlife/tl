@@ -65,6 +65,7 @@ export const getReliveAdaptiveCameraFrame = (
 export interface ReliveCameraPlan {
   key: string;
   coordinates: ReliveCoordinate[];
+  focusCoordinate: ReliveCoordinate | null;
   maxZoom: number;
   mode: 'transit' | 'regional' | 'local';
 }
@@ -89,6 +90,7 @@ export const getReliveCameraPlan = (
     return {
       key: `transit:${activeLeg.id}`,
       coordinates: [activeLeg.from, activeLeg.to],
+      focusCoordinate: null,
       maxZoom: TRANSIT_MAX_ZOOM,
       mode: 'transit',
     };
@@ -99,9 +101,11 @@ export const getReliveCameraPlan = (
 
   // A geographic signature keeps the camera stable across consecutive
   // Memories/stops that belong to the same local cluster.
+  const activeCoordinate = stops[activeStopIndex];
+  const focusKey = `${activeCoordinate[0].toFixed(4)},${activeCoordinate[1].toFixed(4)}`;
   const key = `${frame.mode}:${frame.coordinates
     .map(([longitude, latitude]) => `${longitude.toFixed(4)},${latitude.toFixed(4)}`)
-    .join('|')}`;
+    .join('|')}:focus:${focusKey}`;
 
-  return { ...frame, key };
+  return { ...frame, key, focusCoordinate: activeCoordinate };
 };

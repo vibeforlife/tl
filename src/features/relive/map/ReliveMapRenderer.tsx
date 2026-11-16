@@ -166,6 +166,51 @@ const addReliveLayers = (map: mapboxgl.Map) => {
   });
 };
 
+const fitStopFrame = (
+  map: mapboxgl.Map,
+  coordinates: [number, number][],
+  focusCoordinate: [number, number] | null,
+  duration: number,
+  maxZoom: number,
+) => {
+  if (!focusCoordinate || coordinates.length < 2) {
+    fitStopOverview(map, coordinates, duration, maxZoom);
+    return;
+  }
+
+  const focusIndex = coordinates.findIndex(
+    ([longitude, latitude]) =>
+      longitude === focusCoordinate[0] && latitude === focusCoordinate[1],
+  );
+  if (focusIndex < 0) {
+    fitStopOverview(map, coordinates, duration, maxZoom);
+    return;
+  }
+
+  // Use the neighbourhood to calculate a suitable zoom, but keep the active
+  // Memory's pin as the camera centre instead of centring the cluster bounds.
+  const unwrapped = getReliveUnwrappedStopCoordinates(coordinates);
+  const bounds = unwrapped.reduce(
+    (result, coordinate) => result.extend(coordinate),
+    new mapboxgl.LngLatBounds(unwrapped[0], unwrapped[0]),
+  );
+  const compactMap = map.getContainer().clientHeight < 420;
+  const padding = compactMap
+    ? { top: 58, right: 34, bottom: 64, left: 34 }
+    : { top: 105, right: 75, bottom: 145, left: 75 };
+  const fittedCamera = map.cameraForBounds(bounds, { padding, maxZoom });
+  const unwrappedFocus = unwrapped[focusIndex];
+
+  map.easeTo({
+    center: unwrappedFocus,
+    zoom: fittedCamera?.zoom ?? maxZoom,
+    pitch: 0,
+    bearing: 0,
+    duration,
+    essential: true,
+  });
+};
+
 const fitStopOverview = (
   map: mapboxgl.Map,
   coordinates: [number, number][],
@@ -420,7 +465,11 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     );
     if (!plan || lastCameraTargetRef.current === plan.key) return;
 
-    fitStopOverview(map, plan.coordinates, plan.mode === 'transit' ? 1250 : 1900, plan.maxZoom);
+    if (plan.mode === 'transit') {
+      fitStopOverview(map, plan.coordinates, 1250, plan.maxZoom);
+    } else {
+      fitStopFrame(map, plan.coordinates, plan.focusCoordinate, 1900, plan.maxZoom);
+    }
     lastCameraTargetRef.current = plan.key;
   }, [
     engine,

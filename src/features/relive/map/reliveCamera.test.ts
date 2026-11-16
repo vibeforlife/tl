@@ -73,10 +73,21 @@ describe('getReliveCameraPlan', () => {
     expect(getReliveCameraPlan(canadaToIndia, 1, leg, 0.62)?.mode).toBe('local');
   });
 
-  it('keeps a stable target key for Memories in the same geographic cluster', () => {
+  it('keeps the active Memory as the focal point within a shared geographic cluster', () => {
     const first = getReliveCameraPlan(canadaToIndia, 1, null, 0);
     const nextNearby = getReliveCameraPlan(canadaToIndia, 2, null, 0);
-    expect(first?.key).toBe(nextNearby?.key);
+
+    expect(first?.coordinates).toEqual([canadaToIndia[1], canadaToIndia[2]]);
+    expect(first?.focusCoordinate).toEqual(canadaToIndia[1]);
+    expect(nextNearby?.focusCoordinate).toEqual(canadaToIndia[2]);
+    expect(first?.key).not.toBe(nextNearby?.key);
+  });
+
+  it('keeps the first Memory stop as the focal point when nearby stops exist', () => {
+    const firstMemoryPlan = getReliveCameraPlan(canadaToIndia, 0, null, 0);
+
+    expect(firstMemoryPlan?.focusCoordinate).toEqual(canadaToIndia[0]);
+    expect(firstMemoryPlan?.coordinates).toEqual([canadaToIndia[0]]);
   });
 });
 

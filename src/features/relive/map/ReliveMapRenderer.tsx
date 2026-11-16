@@ -166,6 +166,11 @@ const addReliveLayers = (map: mapboxgl.Map) => {
   });
 };
 
+// RELIVE_DIAGNOSTIC_INSTRUMENTATION_V1
+const reliveDiag = (event: string, details: Record<string, unknown> = {}) => {
+  console.info('[RELIVE-DIAG]', new Date().toISOString(), event, details);
+};
+
 const fitStopFrame = (
   map: mapboxgl.Map,
   coordinates: [number, number][],
@@ -173,6 +178,11 @@ const fitStopFrame = (
   duration: number,
   maxZoom: number,
 ) => {
+  reliveDiag('camera.fitStopFrame', {
+    coordinates, focusCoordinate, duration, maxZoom,
+    mapCenter: map.getCenter().toArray(), mapZoom: map.getZoom(),
+    mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+  });
   if (!focusCoordinate || coordinates.length < 2) {
     fitStopOverview(map, coordinates, duration, maxZoom);
     return;
@@ -217,6 +227,11 @@ const fitStopOverview = (
   duration: number,
   maxZoom: number,
 ) => {
+  reliveDiag('camera.fitStopOverview', {
+    coordinates, duration, maxZoom,
+    mapCenter: map.getCenter().toArray(), mapZoom: map.getZoom(),
+    mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+  });
   if (coordinates.length === 0) {
     map.easeTo({ center: [0, 20], zoom: 1.4, pitch: 0, bearing: 0, duration });
     return;
@@ -326,6 +341,15 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
       if (!map.isStyleLoaded()) setMapError(true);
     };
     map.on('error', handleMapError);
+    map.on('moveend', () => reliveDiag('map.moveend', {
+      center: map.getCenter().toArray(), zoom: map.getZoom(),
+      bearing: map.getBearing(), pitch: map.getPitch(),
+      mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+    }));
+    map.on('resize', () => reliveDiag('map.resize', {
+      center: map.getCenter().toArray(), zoom: map.getZoom(),
+      mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+    }));
 
     map.once('load', () => {
       if (disposed || mapRef.current !== map) return;
@@ -349,7 +373,15 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     });
 
     const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => map.resize())
+      ? new ResizeObserver((entries) => {
+          const rect = entries[0]?.contentRect;
+          reliveDiag('map.resizeObserver', {
+            width: rect?.width, height: rect?.height,
+            mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+            scene: document.querySelector('.relive-title-scene')?.className ?? null,
+          });
+          map.resize();
+        })
       : null;
     if (containerRef.current && resizeObserver) resizeObserver.observe(containerRef.current);
     const handleResize = () => map.resize();
@@ -481,6 +513,18 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
 
     lastClosingOverviewRef.current = false;
 
+    reliveDiag('scene.transition', {
+      sceneType: snapshot.scene.type, sceneIndex: snapshot.sceneIndex,
+      sceneId: snapshot.scene.id, sceneProgress: snapshot.sceneProgress,
+      activeStopIndex: snapshot.activeStopIndex, activeLegId: snapshot.activeLegId,
+      stopCoordinates, stopMemoryCounts,
+      sceneElement: document.querySelector('.relive-title-scene')?.className ?? null,
+      stageSize: (() => {
+        const r = document.querySelector('.relive-player__stage')?.getBoundingClientRect();
+        return r ? { width: r.width, height: r.height, x: r.x, y: r.y } : null;
+      })(),
+      mapSize: [map.getContainer().clientWidth, map.getContainer().clientHeight],
+    });
     const activeStopIndex = snapshot.activeStopIndex;
     if (activeStopIndex < 0 || activeStopIndex >= stops.length) return;
 
@@ -495,6 +539,13 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
       stopMemoryCounts,
     );
     if (!plan || lastCameraTargetRef.current === plan.key) return;
+    reliveDiag('camera.plan', {
+      key: plan.key, mode: plan.mode, coordinates: plan.coordinates,
+      focusCoordinate: plan.focusCoordinate, maxZoom: plan.maxZoom,
+      sceneType: snapshot.scene.type, sceneIndex: snapshot.sceneIndex,
+      sceneProgress: snapshot.sceneProgress, activeStopIndex,
+      activeLegId: snapshot.activeLegId,
+    });
 
     // Stop any still-running overview/previous-scene animation before the
     // active Memory camera takes control.

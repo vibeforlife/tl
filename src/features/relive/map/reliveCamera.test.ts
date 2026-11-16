@@ -83,11 +83,17 @@ describe('getReliveCameraPlan', () => {
     expect(first?.key).not.toBe(nextNearby?.key);
   });
 
-  it('keeps the first Memory stop as the focal point when nearby stops exist', () => {
-    const firstMemoryPlan = getReliveCameraPlan(canadaToIndia, 0, null, 0);
+  it('keeps the first Memory as the focal point when its Journey has nearby stops', () => {
+    const firstMemoryStops: [number, number][] = [
+      [-79.6306, 43.6777], // Toronto Pearson
+      [-79.3832, 43.6532], // nearby Toronto stop
+      [80.2707, 13.0827], // distant Journey stop
+    ];
+    const firstMemoryPlan = getReliveCameraPlan(firstMemoryStops, 0, null, 0);
 
-    expect(firstMemoryPlan?.focusCoordinate).toEqual(canadaToIndia[0]);
-    expect(firstMemoryPlan?.coordinates).toEqual([canadaToIndia[0]]);
+    expect(firstMemoryPlan?.mode).toBe('local');
+    expect(firstMemoryPlan?.coordinates).toEqual(firstMemoryStops.slice(0, 2));
+    expect(firstMemoryPlan?.focusCoordinate).toEqual(firstMemoryStops[0]);
   });
 });
 

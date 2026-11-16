@@ -258,6 +258,7 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
   const [mapError, setMapError] = useState(false);
   const lastCameraTargetRef = useRef<string | null>(null);
   const lastOpeningOverviewSceneRef = useRef<number | null>(null);
+  const openingIdleHandlerRef = useRef<(() => void) | null>(null);
   const lastClosingOverviewRef = useRef(false);
 
   const stopData = useMemo(
@@ -359,6 +360,10 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
       resizeObserver?.disconnect();
       window.removeEventListener('resize', handleResize);
       map.off('error', handleMapError);
+      if (openingIdleHandlerRef.current) {
+        map.off('idle', openingIdleHandlerRef.current);
+        openingIdleHandlerRef.current = null;
+      }
       carMarkerRef.current?.remove();
       carMarkerRef.current = null;
       map.remove();
@@ -410,25 +415,47 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     const map = mapRef.current;
     if (mapReadyVersion === 0 || !map) return;
 
+    const cancelPendingOpeningOverview = () => {
+      const pendingHandler = openingIdleHandlerRef.current;
+      if (pendingHandler) {
+        map.off('idle', pendingHandler);
+        openingIdleHandlerRef.current = null;
+      }
+    };
+
     if (snapshot.scene.type === 'opening') {
       if (lastOpeningOverviewSceneRef.current !== snapshot.sceneIndex) {
-        // Re-submit the complete stop collection for the opening scene, then
-        // wait for Mapbox to finish processing that source before presenting
-        // the overview. This avoids showing the initial atlas without markers.
+        // A new opening scene supersedes any camera animation/listener left
+        // over from a prior scene (for example, when replaying the Journey).
+        cancelPendingOpeningOverview();
+        map.stop();
+
+        // Re-submit the complete stop collection, then wait for Mapbox to
+        // process it before presenting the global overview.
         const stopSource = map.getSource('relive-memory-stops') as
           mapboxgl.GeoJSONSource | undefined;
+        const openingSceneIndex = snapshot.sceneIndex;
         const handleOpeningIdle = () => {
-          if (lastOpeningOverviewSceneRef.current !== snapshot.sceneIndex) return;
+          // Only the currently registered opening listener may move the camera.
+          if (openingIdleHandlerRef.current !== handleOpeningIdle) return;
+          if (lastOpeningOverviewSceneRef.current !== openingSceneIndex) {
+            openingIdleHandlerRef.current = null;
+            return;
+          }
           if (!map.isSourceLoaded('relive-memory-stops')) {
             map.once('idle', handleOpeningIdle);
             return;
           }
+
+          openingIdleHandlerRef.current = null;
+          map.stop();
           fitStopOverview(map, stopCoordinates, 1500, 4.2);
           lastCameraTargetRef.current = 'global';
         };
 
-        lastOpeningOverviewSceneRef.current = snapshot.sceneIndex;
+        lastOpeningOverviewSceneRef.current = openingSceneIndex;
         lastClosingOverviewRef.current = false;
+        openingIdleHandlerRef.current = handleOpeningIdle;
         map.once('idle', handleOpeningIdle);
         stopSource?.setData(stopData);
         map.triggerRepaint();
@@ -437,9 +464,14 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
       return;
     }
 
+    // Remove the asynchronous opening callback before any later scene camera
+    // is applied. A ref check alone does not unregister a pending Mapbox event.
+    cancelPendingOpeningOverview();
+    lastOpeningOverviewSceneRef.current = null;
+
     if (snapshot.scene.type === 'closing') {
-      lastOpeningOverviewSceneRef.current = null;
       if (!lastClosingOverviewRef.current) {
+        map.stop();
         fitStopOverview(map, stopCoordinates, 2100, 4.2);
         lastClosingOverviewRef.current = true;
         lastCameraTargetRef.current = 'global';
@@ -447,7 +479,6 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
       return;
     }
 
-    lastOpeningOverviewSceneRef.current = null;
     lastClosingOverviewRef.current = false;
 
     const activeStopIndex = snapshot.activeStopIndex;
@@ -465,6 +496,9 @@ export function ReliveMapRenderer({ engine, snapshot }: Props) {
     );
     if (!plan || lastCameraTargetRef.current === plan.key) return;
 
+    // Stop any still-running overview/previous-scene animation before the
+    // active Memory camera takes control.
+    map.stop();
     if (plan.mode === 'transit') {
       fitStopOverview(map, plan.coordinates, 1250, plan.maxZoom);
     } else {

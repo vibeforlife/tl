@@ -622,3 +622,63 @@
   }
 }
 
+
+
+.relive-player__audio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.relive-controls__row {
+  grid-template-columns: minmax(120px, 1fr) auto auto auto;
+  column-gap: 22px;
+}
+
+.relive-controls__audio {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 9px;
+}
+
+.relive-controls__audio button {
+  padding: 6px 8px;
+  border: 1px solid rgba(211,180,137,.38);
+  border-radius: 6px;
+  color: rgba(248,244,234,.82);
+  background: rgba(255,255,255,.045);
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.relive-controls__audio button:hover {
+  border-color: rgba(211,180,137,.8);
+  color: #fff8e9;
+}
+
+.relive-controls__audio input {
+  width: 76px;
+  accent-color: #d8b486;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .relive-controls__row {
+    grid-template-columns: 1fr auto;
+    row-gap: 8px;
+  }
+
+  .relive-controls__audio {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .relive-controls__audio input {
+    width: 90px;
+  }
+}

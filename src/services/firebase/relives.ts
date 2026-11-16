@@ -12,6 +12,7 @@ import type {
   ReliveSelectionMode,
 } from '../../types/domain';
 import { db } from './firestore';
+import { DEFAULT_RELIVE_SOUNDTRACK_ID, isReliveSoundtrackId } from '../../domain/relive';
 
 const DEFAULT_RELIVE_ID = 'default';
 const SCHEMA_VERSION = 1 as const;
@@ -43,10 +44,12 @@ const mapRelive = (
   durationMode: isDurationMode(data.durationMode)
     ? data.durationMode
     : 'journey',
-  musicEnabled: data.musicEnabled === true,
-  ...(typeof data.soundtrackId === 'string'
-    ? { soundtrackId: data.soundtrackId }
-    : {}),
+  // Music is now enabled for every Relive, including configurations created
+  // before the soundtrack feature was introduced.
+  musicEnabled: true,
+  soundtrackId: isReliveSoundtrackId(data.soundtrackId)
+    ? data.soundtrackId
+    : DEFAULT_RELIVE_SOUNDTRACK_ID,
   chapterMode: 'automatic',
   createdAt: data.createdAt,
   updatedAt: data.updatedAt,
@@ -77,7 +80,8 @@ export const getOrCreateJourneyRelive = async (
       selectionMode: 'automatic' satisfies ReliveSelectionMode,
       selectedEntryIds: [],
       durationMode: 'journey' satisfies ReliveDurationMode,
-      musicEnabled: false,
+      musicEnabled: true,
+      soundtrackId: DEFAULT_RELIVE_SOUNDTRACK_ID,
       chapterMode: 'automatic',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -94,7 +98,8 @@ export const getOrCreateJourneyRelive = async (
       selectionMode: 'automatic',
       selectedEntryIds: [],
       durationMode: 'journey',
-      musicEnabled: false,
+      musicEnabled: true,
+      soundtrackId: DEFAULT_RELIVE_SOUNDTRACK_ID,
       chapterMode: 'automatic',
     };
   });
@@ -138,7 +143,11 @@ export const saveJourneyRelive = async (
     selectedEntryIds:
       configuration.selectionMode === 'curated' ? selectedEntryIds : [],
     durationMode: configuration.durationMode,
-    musicEnabled: configuration.musicEnabled,
+    // The feature defaults to enabled. Muting is a playback-session control.
+    musicEnabled: true,
+    soundtrackId: isReliveSoundtrackId(configuration.soundtrackId)
+      ? configuration.soundtrackId
+      : DEFAULT_RELIVE_SOUNDTRACK_ID,
     chapterMode: 'automatic',
     updatedAt: serverTimestamp(),
   });

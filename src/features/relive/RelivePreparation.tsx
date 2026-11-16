@@ -10,6 +10,7 @@ import {
   getOrCreateJourneyRelive,
   saveJourneyRelive,
 } from '../../services/firebase/relives';
+import { DEFAULT_RELIVE_SOUNDTRACK_ID, getReliveSoundtrack, RELIVE_SOUNDTRACKS } from './soundtracks';
 import './RelivePreparation.css';
 
 interface RelivePreparationProps {
@@ -293,10 +294,36 @@ export function RelivePreparation({
                   <span className="relive-section__number">03</span>
                   <div>
                     <h3>Soundtrack</h3>
-                    <p>A curated collection of licensed instrumental music is planned for a later implementation phase.</p>
+                    <p>Choose the music that will accompany your Journey from beginning to end.</p>
                   </div>
                 </div>
-                <p className="relive-note">Music is currently off. We won't use unlicensed commercial tracks.</p>
+                <label className="relive-soundtrack-select">
+                  <span>Choose a soundtrack</span>
+                  <select
+                    value={configuration.soundtrackId || DEFAULT_RELIVE_SOUNDTRACK_ID}
+                    onChange={(event) => updateConfiguration({ soundtrackId: event.target.value, musicEnabled: true })}
+                  >
+                    {RELIVE_SOUNDTRACKS.map((track) => (
+                      <option key={track.id} value={track.id}>
+                        {track.title} — {track.mood}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="relive-soundtrack-preview">
+                  <div>
+                    <strong>{getReliveSoundtrack(configuration.soundtrackId).title}</strong>
+                    <small>{getReliveSoundtrack(configuration.soundtrackId).creator} · Preview</small>
+                  </div>
+                  <audio
+                    key={getReliveSoundtrack(configuration.soundtrackId).id}
+                    controls
+                    preload="none"
+                    src={getReliveSoundtrack(configuration.soundtrackId).src}
+                    aria-label={`Preview ${getReliveSoundtrack(configuration.soundtrackId).title}`}
+                  />
+                </div>
+                <p className="relive-note">Music is enabled by default. You can mute it or adjust its volume during playback.</p>
               </section>
 
               {presentation && (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Entry, Journey, ReliveConfiguration } from '../../types/domain';
 import {
   buildRelivePresentation,
@@ -22,6 +22,7 @@ import {
 } from './engine/relivePlaybackEngine';
 import type { RelivePlaybackState } from './engine/relivePlaybackTypes';
 import { ReliveMapRenderer } from './map/ReliveMapRenderer';
+import { getReliveSoundtrack } from './soundtracks';
 import './RelivePlayer.css';
 
 type Props = {
@@ -75,10 +76,50 @@ export function RelivePlayer({ journey, entries, configuration, onClose }: Props
     () => playRelive(engine, createRelivePlaybackState()),
   );
   const [showControls, setShowControls] = useState(true);
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.35);
+  const [audioNeedsGesture, setAudioNeedsGesture] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const soundtrack = getReliveSoundtrack(configuration.soundtrackId);
   const snapshot = useMemo(
     () => getRelivePlaybackSnapshot(engine, playbackState),
     [engine, playbackState],
   );
+
+  // A single audio element lives for the entire Relive. Scene changes and
+  // chapter transitions therefore never restart the soundtrack.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = musicVolume;
+    audio.muted = musicMuted;
+
+    if (snapshot.status === 'playing') {
+      void audio.play()
+        .then(() => setAudioNeedsGesture(false))
+        .catch(() => setAudioNeedsGesture(true));
+    } else {
+      audio.pause();
+    }
+  }, [snapshot.status, musicMuted, musicVolume, soundtrack.src]);
+
+  const toggleMusicMute = useCallback(() => {
+    if (audioNeedsGesture || musicMuted) {
+      setMusicMuted(false);
+      if (audioRef.current) {
+        audioRef.current.volume = musicVolume;
+        audioRef.current.muted = false;
+        void audioRef.current.play()
+          .then(() => setAudioNeedsGesture(false))
+          .catch(() => setAudioNeedsGesture(true));
+      }
+      return;
+    }
+
+    setMusicMuted(true);
+    if (audioRef.current) audioRef.current.muted = true;
+  }, [audioNeedsGesture, musicMuted, musicVolume]);
   const scene = snapshot.scene;
   const memoryNumber = scene.type === 'memory'
     ? memoryScenes.findIndex((item) => item.id === scene.id) + 1
@@ -186,6 +227,13 @@ export function RelivePlayer({ journey, entries, configuration, onClose }: Props
       aria-modal="true"
       aria-label={`Relive ${journey.name}`}
     >
+      <audio
+        ref={audioRef}
+        className="relive-player__audio"
+        src={soundtrack.src}
+        preload="auto"
+        loop
+      />
       <div className="relive-player__stage">
         <ReliveMapRenderer engine={engine} snapshot={snapshot} />
 
@@ -327,6 +375,26 @@ export function RelivePlayer({ journey, entries, configuration, onClose }: Props
             <span>{formatReliveDuration(totalElapsedSeconds)}</span>
             <i>/</i>
             <span>{formatReliveDuration(presentation.estimatedDurationSeconds)}</span>
+          </div>
+          <div className="relive-controls__audio">
+            <button
+              type="button"
+              onClick={toggleMusicMute}
+              aria-label={audioNeedsGesture ? 'Enable soundtrack' : musicMuted ? 'Unmute soundtrack' : 'Mute soundtrack'}
+              title={audioNeedsGesture ? 'Enable soundtrack' : musicMuted ? 'Unmute soundtrack' : 'Mute soundtrack'}
+            >
+              {audioNeedsGesture ? '♫ Enable' : musicMuted ? '♫ Off' : '♫ On'}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={musicVolume}
+              onChange={(event) => setMusicVolume(Number(event.target.value))}
+              aria-label="Soundtrack volume"
+              title="Soundtrack volume"
+            />
           </div>
         </div>
       </footer>

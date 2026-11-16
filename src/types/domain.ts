@@ -159,7 +159,7 @@ export interface ReliveConfiguration {
   selectedEntryIds: string[];
   durationMode: ReliveDurationMode;
   musicEnabled: boolean;
-  /** Reserved for a future curated, licensed soundtrack catalogue. */
+  /** Selected track from the built-in Relive soundtrack collection. */
   soundtrackId?: string;
   chapterMode: 'automatic';
   createdAt?: Timestamp;

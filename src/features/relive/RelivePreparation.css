@@ -463,3 +463,59 @@
   border-color: #72b7a8;
   box-shadow: 0 0 0 3px rgba(114, 183, 168, 0.12);
 }
+
+
+.relive-soundtrack-select {
+  display: grid;
+  gap: 8px;
+  color: #d5dedf;
+  font-size: .78rem;
+  font-weight: 650;
+}
+
+.relive-soundtrack-select select {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px;
+  color: #f4f0e9;
+  background: #1b2b35;
+}
+
+.relive-soundtrack-select option {
+  color: #f4f0e9;
+  background: #1b2b35;
+}
+
+.relive-soundtrack-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  background: rgba(0,0,0,.14);
+}
+
+.relive-soundtrack-preview > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.relive-soundtrack-preview strong {
+  color: #f7f1e8;
+  font-size: .84rem;
+}
+
+.relive-soundtrack-preview small {
+  color: #aebbc1;
+  font-size: .73rem;
+}
+
+.relive-soundtrack-preview audio {
+  display: block;
+  width: 100%;
+  height: 36px;
+}

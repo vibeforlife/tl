@@ -5,6 +5,21 @@ import type {
   ReliveDurationMode,
 } from '../types/domain';
 
+
+export const DEFAULT_RELIVE_SOUNDTRACK_ID = 'cinematic-piano';
+
+const RELIVE_SOUNDTRACK_IDS = new Set([
+  'cinematic-piano',
+  'upbeat-music',
+  'happy-upbeat',
+  'catchy-indie-pop',
+  'upbeat-corporate',
+  'uplifting-80s',
+]);
+
+export const isReliveSoundtrackId = (value: unknown): value is string =>
+  typeof value === 'string' && RELIVE_SOUNDTRACK_IDS.has(value);
+
 export type ReliveScene =
   | {
       id: 'opening';
